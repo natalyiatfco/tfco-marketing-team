@@ -55,6 +55,7 @@ const propertySchema = z.object({
   googleAdsRefreshToken: z.string().optional(),
   metaAdsAccountId: z.string().optional(),
   metaAdsAccessToken: z.string().optional(),
+  metaAdPageId: z.string().optional(),
   openedAt: z.string().optional(),
   propertyType: z.string().optional(),
   logoUrl: z.string().optional(),
@@ -92,6 +93,7 @@ export default function NewProperty() {
       googleAdsRefreshToken: "",
       metaAdsAccountId: "",
       metaAdsAccessToken: "",
+      metaAdPageId: "",
       openedAt: "",
       propertyType: "",
       logoUrl: "",
@@ -453,6 +455,14 @@ export default function NewProperty() {
                       <FormLabel>Access Token</FormLabel>
                       <FormControl><Input type="password" placeholder="EAABs..." {...field} /></FormControl>
                       <FormDescription className="text-xs">System user or page access token</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="metaAdPageId" render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Facebook Page ID</FormLabel>
+                      <FormControl><Input placeholder="123456789012345" {...field} /></FormControl>
+                      <FormDescription className="text-xs">Required for ad creative creation. Find it under your Page's "About" section or Business Manager.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )} />

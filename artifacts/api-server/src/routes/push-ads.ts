@@ -341,6 +341,7 @@ async function pushToMetaAds(
   accountId: string,
   accessToken: string,
   campaign: ParsedMetaAdsCampaign,
+  pageId: string | null,
   overrideName?: string
 ): Promise<{ campaignId: string; campaignName: string; adSetId: string | null; warnings: string[] }> {
   const campaignName = overrideName || campaign.campaignName;
@@ -426,12 +427,70 @@ async function pushToMetaAds(
     logger.warn({ err: errText }, "Meta Ads ad set creation failed — skipping ad set and ad");
   }
 
-  // Ad creative creation requires a Meta Business Page ID which is not currently
-  // collected per-property. Campaign + ad set is the complete deliverable for now;
-  // ad creative/ad creation is intentionally omitted until page_id is available.
-  // See: Meta Marketing API docs on AdCreatives — page_id is a required field.
+  const warnings: string[] = [];
 
-  return { campaignId, campaignName, adSetId, warnings: adSetId ? [] : ["Ad set creation failed — campaign was created but targeting was not applied. Check account permissions and retry."] };
+  if (!adSetId) {
+    warnings.push("Ad set creation failed — campaign was created but targeting was not applied. Check account permissions and retry.");
+  }
+
+  // Step 3: Create ad creative + ad (requires Meta Business Page ID)
+  if (adSetId && pageId) {
+    const creativeParams = new URLSearchParams({
+      name: `${campaignName} — Creative`,
+      object_story_spec: JSON.stringify({
+        page_id: pageId,
+        link_data: {
+          message: campaign.adBody || campaign.campaignName,
+          name: campaign.adHeadline,
+          call_to_action: { type: campaign.callToAction || "LEARN_MORE" },
+        },
+      }),
+      access_token: accessToken,
+    });
+
+    const creativeResponse = await fetch(
+      `${baseUrl}/act_${accountId}/adcreatives`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: creativeParams.toString(),
+      }
+    ).catch(() => null);
+
+    if (creativeResponse?.ok) {
+      const creativeData = (await creativeResponse.json()) as { id: string };
+      const creativeId = creativeData.id;
+
+      const adParams = new URLSearchParams({
+        name: `${campaignName} — Ad`,
+        adset_id: adSetId,
+        creative: JSON.stringify({ creative_id: creativeId }),
+        status: "PAUSED",
+        access_token: accessToken,
+      });
+
+      const adResponse = await fetch(`${baseUrl}/act_${accountId}/ads`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: adParams.toString(),
+      }).catch(() => null);
+
+      if (!adResponse?.ok) {
+        const errText = adResponse ? await adResponse.text().catch(() => "") : "Network error";
+        logger.warn({ err: errText }, "Meta Ads ad creation failed after creative was created");
+        warnings.push("Ad creative was created but the ad itself failed. Review creatives in Meta Ads Manager.");
+      }
+    } else {
+      const errText = creativeResponse ? await creativeResponse.text().catch(() => "") : "Network error";
+      logger.warn({ err: errText }, "Meta Ads creative creation failed");
+      warnings.push("Ad creative creation failed — check that the Page ID is correct and the access token has ads_management permission.");
+    }
+  } else if (adSetId && !pageId) {
+    // Ad set created but no page ID configured
+    warnings.push("Ad creative not created — a Facebook Page ID is required. Add it to this property's Meta Ads configuration.");
+  }
+
+  return { campaignId, campaignName, adSetId, warnings };
 }
 
 // ── Route ───────────────────────────────────────────────────────────────────
@@ -553,6 +612,7 @@ router.post("/tasks/:id/push-ads", async (req, res): Promise<void> => {
         property.metaAdsAccountId,
         accessToken,
         parsed,
+        property.metaAdPageId ?? null,
         overrideCampaignName
       );
       campaignId = result.campaignId;

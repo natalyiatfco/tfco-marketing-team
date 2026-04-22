@@ -42,6 +42,11 @@ export interface Property {
    * @nullable
    */
   metaAdsAccountId?: string | null;
+  /**
+   * Meta (Facebook) Business Page ID used for ad creative creation
+   * @nullable
+   */
+  metaAdPageId?: string | null;
   wordpressConfigured: boolean;
   squarespaceConfigured: boolean;
   /** True when both Google Ads customer ID and refresh token are stored */
@@ -97,6 +102,8 @@ export interface CreatePropertyBody {
   metaAdsAccountId?: string;
   /** Meta Ads access token — write-only, never returned */
   metaAdsAccessToken?: string;
+  /** Facebook Business Page ID required for ad creative creation */
+  metaAdPageId?: string;
   /** ISO 8601 date when the property opened */
   openedAt?: string;
   /** Category of the property */
@@ -130,6 +137,8 @@ export interface UpdatePropertyBody {
   metaAdsAccountId?: string;
   /** Write-only — leave blank to keep existing value */
   metaAdsAccessToken?: string;
+  /** Facebook Business Page ID required for ad creative creation */
+  metaAdPageId?: string;
   /** ISO 8601 date when the property opened */
   openedAt?: string;
   /** Category of the property */

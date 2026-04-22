@@ -457,6 +457,9 @@ components:
         metaAdsAccountId:
           type: ["string", "null"]
           description: "Meta Ads account ID (e.g. act_123456789) — read-only safe field"
+        metaAdPageId:
+          type: ["string", "null"]
+          description: "Meta (Facebook) Business Page ID used for ad creative creation"
         wordpressConfigured:
           type: boolean
         squarespaceConfigured:
@@ -540,6 +543,9 @@ components:
         metaAdsAccessToken:
           type: string
           description: "Meta Ads access token — write-only, never returned"
+        metaAdPageId:
+          type: string
+          description: "Facebook Business Page ID required for ad creative creation"
         openedAt:
           type: string
           description: "ISO 8601 date when the property opened"
@@ -600,6 +606,9 @@ components:
         metaAdsAccessToken:
           type: string
           description: "Write-only — leave blank to keep existing value"
+        metaAdPageId:
+          type: string
+          description: "Facebook Business Page ID required for ad creative creation"
         openedAt:
           type: string
           description: "ISO 8601 date when the property opened"

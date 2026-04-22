@@ -43,6 +43,10 @@ export const ListPropertiesResponseItem = zod.object({
     .describe(
       "Meta Ads account ID (e.g. act_123456789) — read-only safe field",
     ),
+  metaAdPageId: zod
+    .string()
+    .nullish()
+    .describe("Meta (Facebook) Business Page ID used for ad creative creation"),
   wordpressConfigured: zod.boolean(),
   squarespaceConfigured: zod.boolean(),
   googleAdsConfigured: zod
@@ -110,6 +114,10 @@ export const CreatePropertyBody = zod.object({
     .string()
     .optional()
     .describe("Meta Ads access token — write-only, never returned"),
+  metaAdPageId: zod
+    .string()
+    .optional()
+    .describe("Facebook Business Page ID required for ad creative creation"),
   openedAt: zod
     .string()
     .optional()
@@ -154,6 +162,10 @@ export const GetPropertyResponse = zod.object({
     .describe(
       "Meta Ads account ID (e.g. act_123456789) — read-only safe field",
     ),
+  metaAdPageId: zod
+    .string()
+    .nullish()
+    .describe("Meta (Facebook) Business Page ID used for ad creative creation"),
   wordpressConfigured: zod.boolean(),
   squarespaceConfigured: zod.boolean(),
   googleAdsConfigured: zod
@@ -218,6 +230,10 @@ export const UpdatePropertyBody = zod.object({
     .string()
     .optional()
     .describe("Write-only — leave blank to keep existing value"),
+  metaAdPageId: zod
+    .string()
+    .optional()
+    .describe("Facebook Business Page ID required for ad creative creation"),
   openedAt: zod
     .string()
     .optional()
@@ -255,6 +271,10 @@ export const UpdatePropertyResponse = zod.object({
     .describe(
       "Meta Ads account ID (e.g. act_123456789) — read-only safe field",
     ),
+  metaAdPageId: zod
+    .string()
+    .nullish()
+    .describe("Meta (Facebook) Business Page ID used for ad creative creation"),
   wordpressConfigured: zod.boolean(),
   squarespaceConfigured: zod.boolean(),
   googleAdsConfigured: zod

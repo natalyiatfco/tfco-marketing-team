@@ -662,7 +662,11 @@ export default function TaskDetail() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Push campaign to {availableAdPlatforms.find(p => p.value === effectiveAdPlatform)?.label ?? "ad platform"}?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will create a <strong>PAUSED</strong> campaign draft — including ad groups, keywords, and ad creatives — in your {availableAdPlatforms.find(p => p.value === effectiveAdPlatform)?.label ?? "ad platform"} account.
+                  {effectiveAdPlatform === "google_ads" ? (
+                    <>This will create a <strong>PAUSED</strong> campaign in Google Ads — including ad groups, keyword criteria, and responsive search ads.</>
+                  ) : (
+                    <>This will create a <strong>PAUSED</strong> campaign in Meta Ads — including an ad set with audience targeting. An ad creative and ad will also be created if a Facebook Page ID is configured on this property.</>
+                  )}{" "}
                   No budget will be spent until you manually enable the campaign in the platform dashboard.
                   This action cannot be undone from here.
                 </AlertDialogDescription>
