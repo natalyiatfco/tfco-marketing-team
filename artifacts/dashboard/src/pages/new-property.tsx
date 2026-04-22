@@ -171,7 +171,7 @@ export default function NewProperty() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
-                <FormLabel>Logo</FormLabel>
+                <label className="text-sm font-medium leading-none">Logo</label>
                 <div className="flex items-start gap-4">
                   <div className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-muted/30 flex-shrink-0">
                     {logoUrl ? (
