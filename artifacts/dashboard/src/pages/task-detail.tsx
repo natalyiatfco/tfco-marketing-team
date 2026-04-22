@@ -1,5 +1,5 @@
-import { useGetTask, useDecideReview, getGetTaskQueryKey, getListTasksQueryKey, getListReviewsQueryKey } from "@workspace/api-client-react";
-import { useParams, useLocation } from "wouter";
+import { useGetTask, useDecideReview, usePublishTask, getGetTaskQueryKey, getListTasksQueryKey, getListReviewsQueryKey } from "@workspace/api-client-react";
+import { useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,23 +8,47 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { CheckCircle2, Clock, Loader2, AlertCircle, RefreshCw, XCircle, ChevronLeft, Download, Star } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  XCircle,
+  ChevronLeft,
+  Download,
+  Star,
+  Globe,
+  Send,
+  ExternalLink,
+} from "lucide-react";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const CMS_PUBLISHABLE_ROLES = ["content_specialist", "seo_specialist"];
 
 export default function TaskDetail() {
   const params = useParams();
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [managerNotes, setManagerNotes] = useState("");
-  
+  const [publishPlatform, setPublishPlatform] = useState<"wordpress" | "squarespace">("wordpress");
+  const [publishStatusChoice, setPublishStatusChoice] = useState<"draft" | "publish">("draft");
+
   const id = params.id ? parseInt(params.id) : 0;
-  
+
   const { data: task, isLoading } = useGetTask(id, {
     query: { enabled: !!id, queryKey: getGetTaskQueryKey(id) }
   });
 
   const decideReview = useDecideReview();
+  const publishTask = usePublishTask();
 
   if (isLoading) {
     return <div className="space-y-6 animate-pulse p-4">
@@ -37,7 +61,7 @@ export default function TaskDetail() {
 
   const handleDecision = (decision: "approved" | "rejected" | "revision_requested") => {
     if (!task.review?.id) return;
-    
+
     decideReview.mutate({
       id: task.review.id,
       data: {
@@ -57,13 +81,50 @@ export default function TaskDetail() {
     });
   };
 
+  const handlePublish = () => {
+    publishTask.mutate({
+      id,
+      data: {
+        platform: publishPlatform,
+        publishStatus: publishStatusChoice,
+      }
+    }, {
+      onSuccess: (result) => {
+        toast({
+          title: `Published to ${publishPlatform === "wordpress" ? "WordPress" : "Squarespace"}`,
+          description: result.publishUrl ? `View at: ${result.publishUrl}` : undefined,
+        });
+        queryClient.invalidateQueries({ queryKey: getGetTaskQueryKey(id) });
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+      },
+      onError: (err: Error) => {
+        toast({
+          title: "Publish failed",
+          description: err.message ?? "Could not publish to CMS.",
+          variant: "destructive",
+        });
+      }
+    });
+  };
+
+  const isApproved = task.review?.decision === "approved";
+  const hasCms = task.wordpressConfigured || task.squarespaceConfigured;
+  const isCmsRole = CMS_PUBLISHABLE_ROLES.includes(task.agentRole);
+  const showPublishPanel = isApproved && hasCms && isCmsRole && !task.publishStatus;
+  const isPublished = !!task.publishStatus && task.publishStatus !== "failed";
+
+  const availablePlatforms = [
+    ...(task.wordpressConfigured ? [{ value: "wordpress" as const, label: "WordPress" }] : []),
+    ...(task.squarespaceConfigured ? [{ value: "squarespace" as const, label: "Squarespace" }] : []),
+  ];
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <Button variant="ghost" className="mb-2 -ml-4" onClick={() => window.history.back()}>
         <ChevronLeft className="w-4 h-4 mr-2" />
         Back
       </Button>
-      
+
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
@@ -72,12 +133,24 @@ export default function TaskDetail() {
           </div>
           <h1 className="text-3xl font-bold tracking-tight">{task.title}</h1>
         </div>
-        
-        <div className="flex items-center gap-2">
+
+        <div className="flex flex-wrap items-center gap-2">
           {task.status === 'pending' && <Badge variant="secondary" className="text-sm py-1"><Clock className="w-4 h-4 mr-2" /> Pending Execution</Badge>}
           {task.status === 'running' && <Badge variant="default" className="text-sm py-1"><Loader2 className="w-4 h-4 mr-2 animate-spin" /> In Progress</Badge>}
           {task.status === 'completed' && <Badge variant="outline" className="text-sm py-1 border-green-500 text-green-600 bg-green-500/10"><CheckCircle2 className="w-4 h-4 mr-2" /> Agent Completed</Badge>}
           {task.status === 'failed' && <Badge variant="destructive" className="text-sm py-1"><AlertCircle className="w-4 h-4 mr-2" /> Failed</Badge>}
+          {isPublished && (
+            <Badge variant="secondary" className="text-sm py-1 border-blue-500 text-blue-600 bg-blue-500/10 gap-1.5">
+              <Globe className="w-3.5 h-3.5" />
+              {task.publishStatus === "publish" || task.publishStatus === "live" ? "Published" : "Draft Sent"}
+              {task.publishPlatform && ` · ${task.publishPlatform === "wordpress" ? "WordPress" : "Squarespace"}`}
+            </Badge>
+          )}
+          {task.publishStatus === "failed" && (
+            <Badge variant="destructive" className="text-sm py-1 gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5" /> Publish Failed
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -151,7 +224,7 @@ export default function TaskDetail() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4">
-                <div 
+                <div
                   className="w-12 h-12 rounded flex items-center justify-center text-white text-xl"
                   style={{ backgroundColor: task.agentColor }}
                 >
@@ -199,31 +272,31 @@ export default function TaskDetail() {
               <CardContent className="pt-4 space-y-4">
                 <div className="space-y-2">
                   <Label>Feedback / Notes (Optional)</Label>
-                  <Textarea 
-                    placeholder="E.g., Tone needs to be more formal..." 
+                  <Textarea
+                    placeholder="E.g., Tone needs to be more formal..."
                     value={managerNotes}
                     onChange={(e) => setManagerNotes(e.target.value)}
                     className="resize-y"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Button 
-                    className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                  <Button
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
                     onClick={() => handleDecision('approved')}
                     disabled={decideReview.isPending}
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" /> Approve Output
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full text-primary border-primary hover:bg-primary/10"
                     onClick={() => handleDecision('revision_requested')}
                     disabled={decideReview.isPending}
                   >
                     <RefreshCw className="w-4 h-4 mr-2" /> Request Revision
                   </Button>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="w-full text-destructive hover:bg-destructive/10"
                     onClick={() => handleDecision('rejected')}
                     disabled={decideReview.isPending}
@@ -253,6 +326,104 @@ export default function TaskDetail() {
                   <div className="text-sm bg-muted/50 p-3 rounded">
                     <strong>Notes:</strong> {task.review.humanNotes}
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {showPublishPanel && (
+            <Card className="border-blue-500/30">
+              <CardHeader className="bg-blue-500/5 border-b border-border pb-4">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-blue-500" />
+                  <CardTitle className="text-lg">Publish to CMS</CardTitle>
+                </div>
+                <CardDescription>
+                  Push this approved content directly to {availablePlatforms.map(p => p.label).join(" or ")}.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                {availablePlatforms.length > 1 && (
+                  <div className="space-y-2">
+                    <Label>Platform</Label>
+                    <Select
+                      value={publishPlatform}
+                      onValueChange={(v) => setPublishPlatform(v as "wordpress" | "squarespace")}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availablePlatforms.map(p => (
+                          <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Publish as</Label>
+                  <Select
+                    value={publishStatusChoice}
+                    onValueChange={(v) => setPublishStatusChoice(v as "draft" | "publish")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Save as Draft</SelectItem>
+                      <SelectItem value="publish">Publish Live</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  className="w-full"
+                  onClick={handlePublish}
+                  disabled={publishTask.isPending}
+                >
+                  {publishTask.isPending ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Publishing...</>
+                  ) : (
+                    <><Send className="w-4 h-4 mr-2" /> Publish to {availablePlatforms.find(p => p.value === publishPlatform)?.label ?? "CMS"}</>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {isPublished && task.publishedAt && (
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-blue-500" />
+                  <CardTitle className="text-base">Published</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Platform</span>
+                  <span className="font-medium capitalize">{task.publishPlatform}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Status</span>
+                  <Badge variant="secondary" className="capitalize">{task.publishStatus}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Published</span>
+                  <span>{format(new Date(task.publishedAt), "MMM d, h:mm a")}</span>
+                </div>
+                {task.publishUrl && (
+                  <a
+                    href={task.publishUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 text-primary hover:underline pt-1"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    View published post
+                  </a>
                 )}
               </CardContent>
             </Card>

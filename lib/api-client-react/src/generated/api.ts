@@ -28,6 +28,8 @@ import type {
   ListReviewsParams,
   ListTasksParams,
   Property,
+  PublishResult,
+  PublishTaskBody,
   Review,
   Task,
   TaskDetail,
@@ -952,6 +954,93 @@ export function useGetTask<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Publish an approved task output to WordPress or Squarespace
+ */
+export const getPublishTaskUrl = (id: number) => {
+  return `/api/tasks/${id}/publish`;
+};
+
+export const publishTask = async (
+  id: number,
+  publishTaskBody: PublishTaskBody,
+  options?: RequestInit,
+): Promise<PublishResult> => {
+  return customFetch<PublishResult>(getPublishTaskUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(publishTaskBody),
+  });
+};
+
+export const getPublishTaskMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof publishTask>>,
+    TError,
+    { id: number; data: BodyType<PublishTaskBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof publishTask>>,
+  TError,
+  { id: number; data: BodyType<PublishTaskBody> },
+  TContext
+> => {
+  const mutationKey = ["publishTask"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof publishTask>>,
+    { id: number; data: BodyType<PublishTaskBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return publishTask(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PublishTaskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof publishTask>>
+>;
+export type PublishTaskMutationBody = BodyType<PublishTaskBody>;
+export type PublishTaskMutationError = ErrorType<void>;
+
+/**
+ * @summary Publish an approved task output to WordPress or Squarespace
+ */
+export const usePublishTask = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof publishTask>>,
+    TError,
+    { id: number; data: BodyType<PublishTaskBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof publishTask>>,
+  TError,
+  { id: number; data: BodyType<PublishTaskBody> },
+  TContext
+> => {
+  return useMutation(getPublishTaskMutationOptions(options));
+};
 
 /**
  * @summary List all reviews pending human approval

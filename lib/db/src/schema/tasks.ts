@@ -12,6 +12,10 @@ export const tasksTable = pgTable("tasks", {
   inputPrompt: text("input_prompt").notNull(),
   output: text("output"),
   status: text("status").notNull().default("pending"),
+  publishStatus: text("publish_status"),
+  publishUrl: text("publish_url"),
+  publishPlatform: text("publish_platform"),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
@@ -22,6 +26,10 @@ export const insertTaskSchema = createInsertSchema(tasksTable).omit({
   updatedAt: true,
   output: true,
   status: true,
+  publishStatus: true,
+  publishUrl: true,
+  publishPlatform: true,
+  publishedAt: true,
 });
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;

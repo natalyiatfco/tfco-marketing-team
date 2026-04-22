@@ -24,6 +24,11 @@ const propertySchema = z.object({
   facebookHandle: z.string().optional(),
   twitterHandle: z.string().optional(),
   linkedinHandle: z.string().optional(),
+  wordpressUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  wordpressUsername: z.string().optional(),
+  wordpressAppPassword: z.string().optional(),
+  squarespaceApiKey: z.string().optional(),
+  squarespaceCollectionId: z.string().optional(),
 });
 
 type PropertyFormValues = z.infer<typeof propertySchema>;
@@ -48,6 +53,11 @@ export default function NewProperty() {
       facebookHandle: "",
       twitterHandle: "",
       linkedinHandle: "",
+      wordpressUrl: "",
+      wordpressUsername: "",
+      wordpressAppPassword: "",
+      squarespaceApiKey: "",
+      squarespaceCollectionId: "",
     },
   });
 
@@ -80,7 +90,7 @@ export default function NewProperty() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          
+
           <Card>
             <CardHeader>
               <CardTitle>General Information</CardTitle>
@@ -118,50 +128,34 @@ export default function NewProperty() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="brandVoice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Brand Voice</FormLabel>
-                      <FormControl><Input placeholder="e.g. Professional, Playful" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="tone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tone</FormLabel>
-                      <FormControl><Input placeholder="e.g. Enthusiastic, Educational" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="targetAudience"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>Target Audience</FormLabel>
-                      <FormControl><Input placeholder="e.g. Millennials, Fine dining enthusiasts" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="primaryKeywords"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>Primary Keywords</FormLabel>
-                      <FormControl><Input placeholder="e.g. luxury, organic, sustainable" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormField control={form.control} name="brandVoice" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Brand Voice</FormLabel>
+                    <FormControl><Input placeholder="e.g. Professional, Playful" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="tone" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tone</FormLabel>
+                    <FormControl><Input placeholder="e.g. Enthusiastic, Educational" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="targetAudience" render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Target Audience</FormLabel>
+                    <FormControl><Input placeholder="e.g. Millennials, Fine dining enthusiasts" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="primaryKeywords" render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Primary Keywords</FormLabel>
+                    <FormControl><Input placeholder="e.g. luxury, organic, sustainable" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               </div>
             </CardContent>
           </Card>
@@ -171,17 +165,13 @@ export default function NewProperty() {
               <CardTitle>Digital Presence</CardTitle>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="websiteUrl"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel>Website URL</FormLabel>
-                    <FormControl><Input type="url" placeholder="https://..." {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="websiteUrl" render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Website URL</FormLabel>
+                  <FormControl><Input type="url" placeholder="https://..." {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
               <FormField control={form.control} name="instagramHandle" render={({ field }) => (
                 <FormItem><FormLabel>Instagram Handle</FormLabel><FormControl><Input placeholder="@..." {...field} /></FormControl><FormMessage /></FormItem>
               )} />
@@ -194,6 +184,72 @@ export default function NewProperty() {
               <FormField control={form.control} name="linkedinHandle" render={({ field }) => (
                 <FormItem><FormLabel>LinkedIn Handle</FormLabel><FormControl><Input placeholder="..." {...field} /></FormControl><FormMessage /></FormItem>
               )} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>CMS Publishing</CardTitle>
+              <CardDescription>
+                Optional: connect WordPress or Squarespace to enable one-click publishing from the approval queue.
+                You can also add these credentials later from the property's edit page.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold">WordPress</h4>
+                <p className="text-xs text-muted-foreground">
+                  Use an <a href="https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/" target="_blank" rel="noreferrer" className="underline">Application Password</a> from WordPress Users → Profile → Application Passwords.
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="wordpressUrl" render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>WordPress Site URL</FormLabel>
+                      <FormControl><Input type="url" placeholder="https://yoursite.com" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="wordpressUsername" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>WordPress Username</FormLabel>
+                      <FormControl><Input placeholder="admin" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="wordpressAppPassword" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Application Password</FormLabel>
+                      <FormControl><Input type="password" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx" {...field} /></FormControl>
+                      <FormDescription className="text-xs">Generated in WordPress profile settings.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-6 space-y-3">
+                <h4 className="text-sm font-semibold">Squarespace</h4>
+                <p className="text-xs text-muted-foreground">
+                  Generate an API key from Squarespace Settings → Developer API Keys. The Collection ID is found in your blog's API endpoint.
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="squarespaceApiKey" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Squarespace API Key</FormLabel>
+                      <FormControl><Input type="password" placeholder="API key" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="squarespaceCollectionId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Blog Collection ID</FormLabel>
+                      <FormControl><Input placeholder="5f2abc..." {...field} /></FormControl>
+                      <FormDescription className="text-xs">From the Squarespace API collections endpoint.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
             </CardContent>
           </Card>
 

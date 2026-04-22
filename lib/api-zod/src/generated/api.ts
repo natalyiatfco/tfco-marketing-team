@@ -31,6 +31,11 @@ export const ListPropertiesResponseItem = zod.object({
   facebookHandle: zod.string().nullish(),
   twitterHandle: zod.string().nullish(),
   linkedinHandle: zod.string().nullish(),
+  wordpressUrl: zod.string().nullish(),
+  wordpressUsername: zod.string().nullish(),
+  wordpressAppPassword: zod.string().nullish(),
+  squarespaceApiKey: zod.string().nullish(),
+  squarespaceCollectionId: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -51,6 +56,11 @@ export const CreatePropertyBody = zod.object({
   facebookHandle: zod.string().optional(),
   twitterHandle: zod.string().optional(),
   linkedinHandle: zod.string().optional(),
+  wordpressUrl: zod.string().optional(),
+  wordpressUsername: zod.string().optional(),
+  wordpressAppPassword: zod.string().optional(),
+  squarespaceApiKey: zod.string().optional(),
+  squarespaceCollectionId: zod.string().optional(),
 });
 
 /**
@@ -73,6 +83,11 @@ export const GetPropertyResponse = zod.object({
   facebookHandle: zod.string().nullish(),
   twitterHandle: zod.string().nullish(),
   linkedinHandle: zod.string().nullish(),
+  wordpressUrl: zod.string().nullish(),
+  wordpressUsername: zod.string().nullish(),
+  wordpressAppPassword: zod.string().nullish(),
+  squarespaceApiKey: zod.string().nullish(),
+  squarespaceCollectionId: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -96,6 +111,11 @@ export const UpdatePropertyBody = zod.object({
   facebookHandle: zod.string().optional(),
   twitterHandle: zod.string().optional(),
   linkedinHandle: zod.string().optional(),
+  wordpressUrl: zod.string().optional(),
+  wordpressUsername: zod.string().optional(),
+  wordpressAppPassword: zod.string().optional(),
+  squarespaceApiKey: zod.string().optional(),
+  squarespaceCollectionId: zod.string().optional(),
 });
 
 export const UpdatePropertyResponse = zod.object({
@@ -111,6 +131,11 @@ export const UpdatePropertyResponse = zod.object({
   facebookHandle: zod.string().nullish(),
   twitterHandle: zod.string().nullish(),
   linkedinHandle: zod.string().nullish(),
+  wordpressUrl: zod.string().nullish(),
+  wordpressUsername: zod.string().nullish(),
+  wordpressAppPassword: zod.string().nullish(),
+  squarespaceApiKey: zod.string().nullish(),
+  squarespaceCollectionId: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -177,6 +202,10 @@ export const ListTasksResponseItem = zod.object({
   inputPrompt: zod.string(),
   output: zod.string().nullish(),
   status: zod.string(),
+  publishStatus: zod.string().nullish(),
+  publishUrl: zod.string().nullish(),
+  publishPlatform: zod.string().nullish(),
+  publishedAt: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -212,28 +241,68 @@ export const GetTaskResponse = zod.object({
   inputPrompt: zod.string(),
   output: zod.string().nullish(),
   status: zod.string(),
+  publishStatus: zod.string().nullish(),
+  publishUrl: zod.string().nullish(),
+  publishPlatform: zod.string().nullish(),
+  publishedAt: zod.string().nullish(),
+  wordpressConfigured: zod.boolean(),
+  squarespaceConfigured: zod.boolean(),
   review: zod
-    .object({
-      id: zod.number(),
-      taskId: zod.number(),
-      taskTitle: zod.string().nullish(),
-      taskOutput: zod.string().nullish(),
-      taskInputPrompt: zod.string().nullish(),
-      taskStatus: zod.string().nullish(),
-      agentName: zod.string().nullish(),
-      agentColor: zod.string().nullish(),
-      agentIcon: zod.string().nullish(),
-      propertyName: zod.string().nullish(),
-      managerFeedback: zod.string().nullish(),
-      managerScore: zod.number().nullish(),
-      decision: zod.string().nullish(),
-      humanNotes: zod.string().nullish(),
-      createdAt: zod.string(),
-      updatedAt: zod.string(),
-    })
+    .union([
+      zod.object({
+        id: zod.number(),
+        taskId: zod.number(),
+        taskTitle: zod.string().nullish(),
+        taskOutput: zod.string().nullish(),
+        taskInputPrompt: zod.string().nullish(),
+        taskStatus: zod.string().nullish(),
+        agentName: zod.string().nullish(),
+        agentColor: zod.string().nullish(),
+        agentIcon: zod.string().nullish(),
+        propertyName: zod.string().nullish(),
+        managerFeedback: zod.string().nullish(),
+        managerScore: zod.number().nullish(),
+        decision: zod.string().nullish(),
+        humanNotes: zod.string().nullish(),
+        createdAt: zod.string(),
+        updatedAt: zod.string(),
+      }),
+      zod.null(),
+    ])
     .optional(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
+});
+
+/**
+ * @summary Publish an approved task output to WordPress or Squarespace
+ */
+export const PublishTaskParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const PublishTaskBody = zod.object({
+  platform: zod
+    .string()
+    .describe("Target CMS platform: 'wordpress' or 'squarespace'"),
+  publishStatus: zod
+    .string()
+    .describe(
+      "'draft' or 'publish' (WordPress) \/ 'draft' or 'live' (Squarespace)",
+    ),
+  postTitle: zod
+    .string()
+    .optional()
+    .describe("Override the post title (defaults to task title)"),
+});
+
+export const PublishTaskResponse = zod.object({
+  taskId: zod.number(),
+  platform: zod.string(),
+  publishStatus: zod.string(),
+  publishUrl: zod.string().nullish(),
+  publishedAt: zod.string(),
+  message: zod.string(),
 });
 
 /**

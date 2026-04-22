@@ -20,6 +20,8 @@ tags:
     description: Review and approval workflow
   - name: dashboard
     description: Dashboard summary data
+  - name: publish
+    description: CMS publishing (WordPress / Squarespace)
 
 paths:
   /healthz:
@@ -235,6 +237,39 @@ paths:
         "404":
           description: Not found
 
+  /tasks/{id}/publish:
+    post:
+      operationId: publishTask
+      tags: [publish]
+      summary: Publish an approved task output to WordPress or Squarespace
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishTaskBody"
+      responses:
+        "200":
+          description: Publish result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishResult"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+        "409":
+          description: Task not in publishable state
+        "422":
+          description: CMS credentials not configured for this property
+
   # Reviews
   /reviews:
     get:
@@ -356,6 +391,16 @@ components:
           type: ["string", "null"]
         linkedinHandle:
           type: ["string", "null"]
+        wordpressUrl:
+          type: ["string", "null"]
+        wordpressUsername:
+          type: ["string", "null"]
+        wordpressAppPassword:
+          type: ["string", "null"]
+        squarespaceApiKey:
+          type: ["string", "null"]
+        squarespaceCollectionId:
+          type: ["string", "null"]
         createdAt:
           type: string
         updatedAt:
@@ -391,6 +436,16 @@ components:
           type: string
         linkedinHandle:
           type: string
+        wordpressUrl:
+          type: string
+        wordpressUsername:
+          type: string
+        wordpressAppPassword:
+          type: string
+        squarespaceApiKey:
+          type: string
+        squarespaceCollectionId:
+          type: string
       required:
         - name
 
@@ -418,6 +473,16 @@ components:
         twitterHandle:
           type: string
         linkedinHandle:
+          type: string
+        wordpressUrl:
+          type: string
+        wordpressUsername:
+          type: string
+        wordpressAppPassword:
+          type: string
+        squarespaceApiKey:
+          type: string
+        squarespaceCollectionId:
           type: string
 
     Agent:
@@ -476,6 +541,14 @@ components:
           type: ["string", "null"]
         status:
           type: string
+        publishStatus:
+          type: ["string", "null"]
+        publishUrl:
+          type: ["string", "null"]
+        publishPlatform:
+          type: ["string", "null"]
+        publishedAt:
+          type: ["string", "null"]
         createdAt:
           type: string
         updatedAt:
@@ -522,6 +595,18 @@ components:
           type: ["string", "null"]
         status:
           type: string
+        publishStatus:
+          type: ["string", "null"]
+        publishUrl:
+          type: ["string", "null"]
+        publishPlatform:
+          type: ["string", "null"]
+        publishedAt:
+          type: ["string", "null"]
+        wordpressConfigured:
+          type: boolean
+        squarespaceConfigured:
+          type: boolean
         review:
           oneOf:
             - $ref: "#/components/schemas/Review"
@@ -542,6 +627,8 @@ components:
         - title
         - inputPrompt
         - status
+        - wordpressConfigured
+        - squarespaceConfigured
         - createdAt
         - updatedAt
 
@@ -689,3 +776,41 @@ components:
         - propertyName
         - status
         - createdAt
+
+    PublishTaskBody:
+      type: object
+      properties:
+        platform:
+          type: string
+          description: "Target CMS platform: 'wordpress' or 'squarespace'"
+        publishStatus:
+          type: string
+          description: "'draft' or 'publish' (WordPress) / 'draft' or 'live' (Squarespace)"
+        postTitle:
+          type: string
+          description: "Override the post title (defaults to task title)"
+      required:
+        - platform
+        - publishStatus
+
+    PublishResult:
+      type: object
+      properties:
+        taskId:
+          type: integer
+        platform:
+          type: string
+        publishStatus:
+          type: string
+        publishUrl:
+          type: ["string", "null"]
+        publishedAt:
+          type: string
+        message:
+          type: string
+      required:
+        - taskId
+        - platform
+        - publishStatus
+        - publishedAt
+        - message

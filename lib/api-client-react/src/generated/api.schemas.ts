@@ -32,6 +32,16 @@ export interface Property {
   twitterHandle?: string | null;
   /** @nullable */
   linkedinHandle?: string | null;
+  /** @nullable */
+  wordpressUrl?: string | null;
+  /** @nullable */
+  wordpressUsername?: string | null;
+  /** @nullable */
+  wordpressAppPassword?: string | null;
+  /** @nullable */
+  squarespaceApiKey?: string | null;
+  /** @nullable */
+  squarespaceCollectionId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,6 +58,11 @@ export interface CreatePropertyBody {
   facebookHandle?: string;
   twitterHandle?: string;
   linkedinHandle?: string;
+  wordpressUrl?: string;
+  wordpressUsername?: string;
+  wordpressAppPassword?: string;
+  squarespaceApiKey?: string;
+  squarespaceCollectionId?: string;
 }
 
 export interface UpdatePropertyBody {
@@ -62,6 +77,11 @@ export interface UpdatePropertyBody {
   facebookHandle?: string;
   twitterHandle?: string;
   linkedinHandle?: string;
+  wordpressUrl?: string;
+  wordpressUsername?: string;
+  wordpressAppPassword?: string;
+  squarespaceApiKey?: string;
+  squarespaceCollectionId?: string;
 }
 
 export interface Agent {
@@ -89,6 +109,14 @@ export interface Task {
   /** @nullable */
   output?: string | null;
   status: string;
+  /** @nullable */
+  publishStatus?: string | null;
+  /** @nullable */
+  publishUrl?: string | null;
+  /** @nullable */
+  publishPlatform?: string | null;
+  /** @nullable */
+  publishedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -138,7 +166,17 @@ export interface TaskDetail {
   /** @nullable */
   output?: string | null;
   status: string;
-  review?: Review;
+  /** @nullable */
+  publishStatus?: string | null;
+  /** @nullable */
+  publishUrl?: string | null;
+  /** @nullable */
+  publishPlatform?: string | null;
+  /** @nullable */
+  publishedAt?: string | null;
+  wordpressConfigured: boolean;
+  squarespaceConfigured: boolean;
+  review?: Review | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -182,6 +220,25 @@ export interface ActivityItem {
   propertyName: string;
   status: string;
   createdAt: string;
+}
+
+export interface PublishTaskBody {
+  /** Target CMS platform: 'wordpress' or 'squarespace' */
+  platform: string;
+  /** 'draft' or 'publish' (WordPress) / 'draft' or 'live' (Squarespace) */
+  publishStatus: string;
+  /** Override the post title (defaults to task title) */
+  postTitle?: string;
+}
+
+export interface PublishResult {
+  taskId: number;
+  platform: string;
+  publishStatus: string;
+  /** @nullable */
+  publishUrl?: string | null;
+  publishedAt: string;
+  message: string;
 }
 
 export type ListTasksParams = {

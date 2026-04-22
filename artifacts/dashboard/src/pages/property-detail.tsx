@@ -2,7 +2,7 @@ import { useGetProperty, useUpdateProperty, useDeleteProperty, getGetPropertyQue
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,8 +10,9 @@ import { useLocation, useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Trash2 } from "lucide-react";
+import { ChevronLeft, Trash2, CheckCircle2 } from "lucide-react";
 import { useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,11 @@ const propertySchema = z.object({
   facebookHandle: z.string().optional().nullable(),
   twitterHandle: z.string().optional().nullable(),
   linkedinHandle: z.string().optional().nullable(),
+  wordpressUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
+  wordpressUsername: z.string().optional().nullable(),
+  wordpressAppPassword: z.string().optional().nullable(),
+  squarespaceApiKey: z.string().optional().nullable(),
+  squarespaceCollectionId: z.string().optional().nullable(),
 });
 
 type PropertyFormValues = z.infer<typeof propertySchema>;
@@ -75,16 +81,20 @@ export default function PropertyDetail() {
         facebookHandle: property.facebookHandle || "",
         twitterHandle: property.twitterHandle || "",
         linkedinHandle: property.linkedinHandle || "",
+        wordpressUrl: property.wordpressUrl || "",
+        wordpressUsername: property.wordpressUsername || "",
+        wordpressAppPassword: property.wordpressAppPassword || "",
+        squarespaceApiKey: property.squarespaceApiKey || "",
+        squarespaceCollectionId: property.squarespaceCollectionId || "",
       });
     }
   }, [property, form]);
 
   function onSubmit(values: PropertyFormValues) {
-    // Clean up nulls
     const cleanedValues = Object.fromEntries(
       Object.entries(values).map(([k, v]) => [k, v === null ? "" : v])
     );
-    
+
     updateProperty.mutate({
       id,
       data: cleanedValues
@@ -116,6 +126,9 @@ export default function PropertyDetail() {
   if (isLoading) return <div className="p-8">Loading...</div>;
   if (!property) return <div className="p-8">Property not found</div>;
 
+  const wpConfigured = !!(property.wordpressUrl && property.wordpressUsername && property.wordpressAppPassword);
+  const sqConfigured = !!(property.squarespaceApiKey && property.squarespaceCollectionId);
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -146,11 +159,23 @@ export default function PropertyDetail() {
 
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Edit {property.name}</h1>
+        <div className="flex items-center gap-2 mt-2">
+          {wpConfigured && (
+            <Badge variant="secondary" className="gap-1 text-xs">
+              <CheckCircle2 className="w-3 h-3 text-green-500" /> WordPress
+            </Badge>
+          )}
+          {sqConfigured && (
+            <Badge variant="secondary" className="gap-1 text-xs">
+              <CheckCircle2 className="w-3 h-3 text-green-500" /> Squarespace
+            </Badge>
+          )}
+        </div>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          
+
           <Card>
             <CardHeader>
               <CardTitle>General Information</CardTitle>
@@ -224,6 +249,86 @@ export default function PropertyDetail() {
               <FormField control={form.control} name="linkedinHandle" render={({ field }) => (
                 <FormItem><FormLabel>LinkedIn Handle</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
               )} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>CMS Publishing</CardTitle>
+              <CardDescription>
+                Connect WordPress and Squarespace so approved content can be published directly from the platform.
+                Credentials are stored securely and never exposed in the UI.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-semibold">WordPress</h4>
+                  {wpConfigured && (
+                    <Badge variant="secondary" className="gap-1 text-xs">
+                      <CheckCircle2 className="w-3 h-3 text-green-500" /> Connected
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Use an <a href="https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/" target="_blank" rel="noreferrer" className="underline">Application Password</a> from WordPress Users → Profile → Application Passwords.
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="wordpressUrl" render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>WordPress Site URL</FormLabel>
+                      <FormControl><Input type="url" placeholder="https://yoursite.com" {...field} value={field.value || ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="wordpressUsername" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>WordPress Username</FormLabel>
+                      <FormControl><Input placeholder="admin" {...field} value={field.value || ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="wordpressAppPassword" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Application Password</FormLabel>
+                      <FormControl><Input type="password" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx" {...field} value={field.value || ""} /></FormControl>
+                      <FormDescription className="text-xs">Generated in WordPress profile settings.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-6 space-y-3">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-semibold">Squarespace</h4>
+                  {sqConfigured && (
+                    <Badge variant="secondary" className="gap-1 text-xs">
+                      <CheckCircle2 className="w-3 h-3 text-green-500" /> Connected
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Generate an API key from Squarespace Settings → Developer API Keys. The Collection ID is found in your blog URL structure.
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="squarespaceApiKey" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Squarespace API Key</FormLabel>
+                      <FormControl><Input type="password" placeholder="API key" {...field} value={field.value || ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="squarespaceCollectionId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Blog Collection ID</FormLabel>
+                      <FormControl><Input placeholder="5f2abc..." {...field} value={field.value || ""} /></FormControl>
+                      <FormDescription className="text-xs">From the Squarespace API collections endpoint.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
             </CardContent>
           </Card>
 

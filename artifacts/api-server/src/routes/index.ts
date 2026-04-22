@@ -5,6 +5,7 @@ import agentsRouter from "./agents";
 import tasksRouter from "./tasks";
 import reviewsRouter from "./reviews";
 import dashboardRouter from "./dashboard";
+import publishRouter from "./publish";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(agentsRouter);
 router.use(tasksRouter);
 router.use(reviewsRouter);
 router.use(dashboardRouter);
+router.use(publishRouter);
 
 export default router;

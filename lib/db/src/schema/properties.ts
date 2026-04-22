@@ -15,6 +15,11 @@ export const propertiesTable = pgTable("properties", {
   facebookHandle: text("facebook_handle"),
   twitterHandle: text("twitter_handle"),
   linkedinHandle: text("linkedin_handle"),
+  wordpressUrl: text("wordpress_url"),
+  wordpressUsername: text("wordpress_username"),
+  wordpressAppPassword: text("wordpress_app_password"),
+  squarespaceApiKey: text("squarespace_api_key"),
+  squarespaceCollectionId: text("squarespace_collection_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
