@@ -35,6 +35,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const CMS_PUBLISHABLE_ROLES = ["content_specialist", "seo_specialist"];
 const ADS_PUSHABLE_ROLES = ["paid_specialist"];
@@ -116,6 +126,7 @@ export default function TaskDetail() {
   const [publishPlatform, setPublishPlatform] = useState<"wordpress" | "squarespace">("wordpress");
   const [publishStatusChoice, setPublishStatusChoice] = useState<"draft" | "publish">("draft");
   const [adPlatform, setAdPlatform] = useState<"google_ads" | "meta_ads">("google_ads");
+  const [showPushConfirm, setShowPushConfirm] = useState(false);
 
   const id = params.id ? parseInt(params.id) : 0;
 
@@ -633,7 +644,7 @@ export default function TaskDetail() {
 
                 <Button
                   className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-                  onClick={handlePushToAds}
+                  onClick={() => setShowPushConfirm(true)}
                   disabled={pushToAds.isPending}
                 >
                   {pushToAds.isPending ? (
@@ -645,6 +656,28 @@ export default function TaskDetail() {
               </CardContent>
             </Card>
           )}
+
+          <AlertDialog open={showPushConfirm} onOpenChange={setShowPushConfirm}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Push campaign to {availableAdPlatforms.find(p => p.value === effectiveAdPlatform)?.label ?? "ad platform"}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will create a <strong>PAUSED</strong> campaign draft — including ad groups, keywords, and ad creatives — in your {availableAdPlatforms.find(p => p.value === effectiveAdPlatform)?.label ?? "ad platform"} account.
+                  No budget will be spent until you manually enable the campaign in the platform dashboard.
+                  This action cannot be undone from here.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                  onClick={() => { setShowPushConfirm(false); handlePushToAds(); }}
+                >
+                  <Send className="w-4 h-4 mr-2" /> Confirm Push
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {isAdPushed && task.adPushedAt && (
             <Card>

@@ -27,6 +27,16 @@ function encryptCredentials(data: Record<string, unknown>): Record<string, unkno
   return result;
 }
 
+function coerceDates(data: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...data };
+  if (typeof result.openedAt === "string" && result.openedAt) {
+    result.openedAt = new Date(result.openedAt);
+  } else if (result.openedAt === "" || result.openedAt === null) {
+    result.openedAt = null;
+  }
+  return result;
+}
+
 function toSafeProperty(property: Property) {
   const {
     wordpressUrl,
@@ -58,7 +68,8 @@ router.post("/properties", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [property] = await db.insert(propertiesTable).values(encryptCredentials(parsed.data) as typeof parsed.data).returning();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [property] = await db.insert(propertiesTable).values(coerceDates(encryptCredentials(parsed.data)) as any).returning();
   res.status(201).json(toSafeProperty(property));
 });
 
@@ -99,7 +110,8 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
 
   const [property] = await db
     .update(propertiesTable)
-    .set({ ...(encryptCredentials(updateData) as Partial<typeof propertiesTable.$inferInsert>), updatedAt: new Date() })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .set({ ...(coerceDates(encryptCredentials(updateData)) as any), updatedAt: new Date() })
     .where(eq(propertiesTable.id, params.data.id))
     .returning();
   if (!property) {

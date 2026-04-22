@@ -250,6 +250,85 @@ async function pushToGoogleAds(
   const campaignResourceName = campaignData.results[0]?.resourceName ?? "";
   const campaignId = campaignResourceName.split("/").pop() ?? campaignResourceName;
 
+  // Step 3: Create ad groups, keywords, and responsive search ads
+  if (channelType === "SEARCH" && campaign.adGroups.length > 0) {
+    for (const group of campaign.adGroups) {
+      // 3a. Create ad group
+      const adGroupResponse = await fetch(
+        `https://googleads.googleapis.com/v18/customers/${cleanCustomerId}/adGroups:mutate`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            operations: [{
+              create: {
+                campaign: campaignResourceName,
+                name: group.name,
+                status: "PAUSED",
+                type: "SEARCH_STANDARD",
+                cpcBidMicros: "1000000", // $1.00 default CPC
+              }
+            }]
+          }),
+        }
+      );
+
+      if (!adGroupResponse.ok) {
+        logger.warn({ group: group.name }, "Google Ads ad group creation failed — skipping");
+        continue;
+      }
+
+      const adGroupData = (await adGroupResponse.json()) as { results: Array<{ resourceName: string }> };
+      const adGroupResourceName = adGroupData.results[0]?.resourceName;
+      if (!adGroupResourceName) continue;
+
+      // 3b. Create keywords for this ad group
+      if (group.keywords.length > 0) {
+        const keywordOperations = group.keywords.slice(0, 20).map((kw) => ({
+          create: {
+            adGroup: adGroupResourceName,
+            text: kw,
+            matchType: "BROAD",
+            status: "PAUSED",
+          }
+        }));
+
+        await fetch(
+          `https://googleads.googleapis.com/v18/customers/${cleanCustomerId}/adGroupCriteria:mutate`,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ operations: keywordOperations }),
+          }
+        ).catch((e) => logger.warn({ error: e }, "Google Ads keyword creation failed — continuing"));
+      }
+
+      // 3c. Create responsive search ad for this ad group
+      if (group.headlines.length > 0) {
+        const headlines = group.headlines.slice(0, 15).map((text) => ({ text: text.slice(0, 30) }));
+        const descriptions = group.descriptions.slice(0, 4).map((text) => ({ text: text.slice(0, 90) }));
+
+        const adBody: Record<string, unknown> = {
+          adGroup: adGroupResourceName,
+          status: "PAUSED",
+          ad: {
+            responsiveSearchAd: { headlines, descriptions },
+            finalUrls: group.finalUrl ? [group.finalUrl] : [],
+          }
+        };
+
+        await fetch(
+          `https://googleads.googleapis.com/v18/customers/${cleanCustomerId}/adGroupAds:mutate`,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ operations: [{ create: adBody }] }),
+          }
+        ).catch((e) => logger.warn({ error: e }, "Google Ads RSA creation failed — continuing"));
+      }
+    }
+  }
+
   return { campaignId, campaignName };
 }
 
@@ -262,12 +341,14 @@ async function pushToMetaAds(
   overrideName?: string
 ): Promise<{ campaignId: string; campaignName: string }> {
   const campaignName = overrideName || campaign.campaignName;
+  const baseUrl = `https://graph.facebook.com/v21.0`;
 
   const normalizedObjective = campaign.objective.startsWith("OUTCOME_")
     ? campaign.objective
     : `OUTCOME_${campaign.objective}`;
 
-  const params = new URLSearchParams({
+  // Step 1: Create campaign
+  const campaignParams = new URLSearchParams({
     name: campaignName,
     objective: normalizedObjective,
     status: "PAUSED",
@@ -275,22 +356,119 @@ async function pushToMetaAds(
     access_token: accessToken,
   });
 
-  const response = await fetch(
-    `https://graph.facebook.com/v21.0/act_${accountId}/campaigns`,
+  const campaignResponse = await fetch(
+    `${baseUrl}/act_${accountId}/campaigns`,
     {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params.toString(),
+      body: campaignParams.toString(),
     }
   );
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Meta Ads campaign creation failed (${response.status}): ${text.slice(0, 300)}`);
+  if (!campaignResponse.ok) {
+    const text = await campaignResponse.text();
+    throw new Error(`Meta Ads campaign creation failed (${campaignResponse.status}): ${text.slice(0, 300)}`);
   }
 
-  const data = (await response.json()) as { id: string };
-  return { campaignId: data.id, campaignName };
+  const campaignData = (await campaignResponse.json()) as { id: string };
+  const campaignId = campaignData.id;
+
+  // Step 2: Create ad set
+  const targeting: Record<string, unknown> = {
+    age_min: campaign.audienceAgeMin,
+    age_max: campaign.audienceAgeMax,
+  };
+
+  if (campaign.locations.length > 0) {
+    targeting.geo_locations = {
+      countries: campaign.locations.slice(0, 10).map((l) => l.trim().toUpperCase().slice(0, 2)),
+    };
+  } else {
+    targeting.geo_locations = { countries: ["US"] };
+  }
+
+  if (campaign.interests.length > 0) {
+    targeting.interests = campaign.interests.slice(0, 10).map((name) => ({ name }));
+  }
+
+  const adSetParams = new URLSearchParams({
+    name: `${campaignName} — Ad Set`,
+    campaign_id: campaignId,
+    daily_budget: (campaign.dailyBudgetCents * 100).toString(), // Meta expects cents in local currency * 100 = micros?
+    billing_event: "IMPRESSIONS",
+    optimization_goal: "REACH",
+    status: "PAUSED",
+    targeting: JSON.stringify(targeting),
+    access_token: accessToken,
+  });
+
+  let adSetId: string | null = null;
+
+  const adSetResponse = await fetch(
+    `${baseUrl}/act_${accountId}/adsets`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: adSetParams.toString(),
+    }
+  ).catch(() => null);
+
+  if (adSetResponse?.ok) {
+    const adSetData = (await adSetResponse.json()) as { id: string };
+    adSetId = adSetData.id;
+  } else {
+    const errText = adSetResponse ? await adSetResponse.text().catch(() => "") : "";
+    logger.warn({ err: errText }, "Meta Ads ad set creation failed — skipping ad set and ad");
+  }
+
+  // Step 3: Create ad creative + ad (only if ad set was created)
+  if (adSetId) {
+    const creativeParams = new URLSearchParams({
+      name: `${campaignName} — Creative`,
+      object_story_spec: JSON.stringify({
+        link_data: {
+          message: campaign.adBody || campaign.campaignName,
+          name: campaign.adHeadline,
+          call_to_action: { type: campaign.callToAction || "LEARN_MORE" },
+        },
+        page_id: "me", // placeholder — real page ID would come from property config
+      }),
+      access_token: accessToken,
+    });
+
+    const creativeResponse = await fetch(
+      `${baseUrl}/act_${accountId}/adcreatives`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: creativeParams.toString(),
+      }
+    ).catch(() => null);
+
+    if (creativeResponse?.ok) {
+      const creativeData = (await creativeResponse.json()) as { id: string };
+      const creativeId = creativeData.id;
+
+      const adParams = new URLSearchParams({
+        name: `${campaignName} — Ad`,
+        adset_id: adSetId,
+        creative: JSON.stringify({ creative_id: creativeId }),
+        status: "PAUSED",
+        access_token: accessToken,
+      });
+
+      await fetch(`${baseUrl}/act_${accountId}/ads`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: adParams.toString(),
+      }).catch((e) => logger.warn({ error: e }, "Meta Ads ad creation failed — continuing"));
+    } else {
+      const errText = creativeResponse ? await creativeResponse.text().catch(() => "") : "";
+      logger.warn({ err: errText }, "Meta Ads creative creation failed — skipping ad");
+    }
+  }
+
+  return { campaignId, campaignName };
 }
 
 // ── Route ───────────────────────────────────────────────────────────────────
