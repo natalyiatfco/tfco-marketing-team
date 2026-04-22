@@ -24,6 +24,10 @@ export const propertiesTable = pgTable("properties", {
   googleAdsRefreshToken: text("google_ads_refresh_token"),
   metaAdsAccountId: text("meta_ads_account_id"),
   metaAdsAccessToken: text("meta_ads_access_token"),
+  openedAt: timestamp("opened_at", { withTimezone: true }),
+  propertyType: text("property_type"),
+  logoUrl: text("logo_url"),
+  resyUrl: text("resy_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

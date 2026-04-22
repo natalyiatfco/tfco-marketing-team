@@ -48,6 +48,26 @@ export interface Property {
   googleAdsConfigured: boolean;
   /** True when both Meta Ads account ID and access token are stored */
   metaAdsConfigured: boolean;
+  /**
+   * Date the property opened (ISO 8601)
+   * @nullable
+   */
+  openedAt?: string | null;
+  /**
+   * Category of the property, e.g. Restaurant, Wine Shop, Bar
+   * @nullable
+   */
+  propertyType?: string | null;
+  /**
+   * Base64 data URL or hosted URL for the property logo
+   * @nullable
+   */
+  logoUrl?: string | null;
+  /**
+   * Resy reservation page URL for this property
+   * @nullable
+   */
+  resyUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -77,6 +97,14 @@ export interface CreatePropertyBody {
   metaAdsAccountId?: string;
   /** Meta Ads access token — write-only, never returned */
   metaAdsAccessToken?: string;
+  /** ISO 8601 date when the property opened */
+  openedAt?: string;
+  /** Category of the property */
+  propertyType?: string;
+  /** Base64 data URL for the property logo */
+  logoUrl?: string;
+  /** Resy reservation page URL */
+  resyUrl?: string;
 }
 
 export interface UpdatePropertyBody {
@@ -102,6 +130,14 @@ export interface UpdatePropertyBody {
   metaAdsAccountId?: string;
   /** Write-only — leave blank to keep existing value */
   metaAdsAccessToken?: string;
+  /** ISO 8601 date when the property opened */
+  openedAt?: string;
+  /** Category of the property */
+  propertyType?: string;
+  /** Base64 data URL for the property logo */
+  logoUrl?: string;
+  /** Resy reservation page URL */
+  resyUrl?: string;
 }
 
 export interface Agent {
@@ -113,6 +149,13 @@ export interface Agent {
   color: string;
   icon: string;
   createdAt: string;
+}
+
+export interface UpdateAgentBody {
+  /** Updated system prompt for this agent */
+  systemPrompt?: string;
+  /** Updated short description for this agent */
+  description?: string;
 }
 
 export interface Task {

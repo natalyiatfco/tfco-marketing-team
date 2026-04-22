@@ -35,11 +35,26 @@ export default function Properties() {
         {properties?.map((property) => (
           <Card key={property.id} className="flex flex-col">
             <CardHeader>
-              <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mb-4">
-                <Building2 className="w-6 h-6 text-muted-foreground" />
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-14 h-14 bg-muted rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {property.logoUrl ? (
+                    <img
+                      src={property.logoUrl}
+                      alt={`${property.name} logo`}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    <Building2 className="w-6 h-6 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="text-lg leading-tight">{property.name}</CardTitle>
+                  {property.propertyType && (
+                    <Badge variant="secondary" className="mt-1 text-xs">{property.propertyType}</Badge>
+                  )}
+                </div>
               </div>
-              <CardTitle className="text-xl">{property.name}</CardTitle>
-              <CardDescription className="line-clamp-2 mt-1">
+              <CardDescription className="line-clamp-2">
                 {property.description || "No description provided."}
               </CardDescription>
             </CardHeader>
@@ -48,18 +63,19 @@ export default function Properties() {
               <div className="mb-4">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Voice & Tone</p>
                 <div className="flex flex-wrap gap-2">
-                  {property.brandVoice && <Badge variant="secondary">{property.brandVoice}</Badge>}
-                  {property.tone && <Badge variant="outline">{property.tone}</Badge>}
+                  {property.brandVoice && <Badge variant="secondary" className="text-xs max-w-[140px] truncate">{property.brandVoice}</Badge>}
+                  {property.tone && <Badge variant="outline" className="text-xs max-w-[140px] truncate">{property.tone}</Badge>}
                 </div>
               </div>
 
               <div className="mt-auto space-y-4">
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   {property.websiteUrl && <a href={property.websiteUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary"><Globe className="w-4 h-4" /></a>}
                   {property.instagramHandle && <a href={`https://instagram.com/${property.instagramHandle}`} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary"><Instagram className="w-4 h-4" /></a>}
                   {property.facebookHandle && <a href={`https://facebook.com/${property.facebookHandle}`} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary"><Facebook className="w-4 h-4" /></a>}
                   {property.twitterHandle && <a href={`https://twitter.com/${property.twitterHandle}`} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary"><Twitter className="w-4 h-4" /></a>}
                   {property.linkedinHandle && <a href={`https://linkedin.com/company/${property.linkedinHandle}`} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary"><Linkedin className="w-4 h-4" /></a>}
+                  {property.resyUrl && <a href={property.resyUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary" title="Resy"><ExternalLink className="w-4 h-4" /></a>}
                 </div>
                 
                 <Link href={`/properties/${property.id}`} className="block w-full">

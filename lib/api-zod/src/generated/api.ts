@@ -53,6 +53,22 @@ export const ListPropertiesResponseItem = zod.object({
   metaAdsConfigured: zod
     .boolean()
     .describe("True when both Meta Ads account ID and access token are stored"),
+  openedAt: zod
+    .string()
+    .nullish()
+    .describe("Date the property opened (ISO 8601)"),
+  propertyType: zod
+    .string()
+    .nullish()
+    .describe("Category of the property, e.g. Restaurant, Wine Shop, Bar"),
+  logoUrl: zod
+    .string()
+    .nullish()
+    .describe("Base64 data URL or hosted URL for the property logo"),
+  resyUrl: zod
+    .string()
+    .nullish()
+    .describe("Resy reservation page URL for this property"),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -94,6 +110,16 @@ export const CreatePropertyBody = zod.object({
     .string()
     .optional()
     .describe("Meta Ads access token — write-only, never returned"),
+  openedAt: zod
+    .string()
+    .optional()
+    .describe("ISO 8601 date when the property opened"),
+  propertyType: zod.string().optional().describe("Category of the property"),
+  logoUrl: zod
+    .string()
+    .optional()
+    .describe("Base64 data URL for the property logo"),
+  resyUrl: zod.string().optional().describe("Resy reservation page URL"),
 });
 
 /**
@@ -138,6 +164,22 @@ export const GetPropertyResponse = zod.object({
   metaAdsConfigured: zod
     .boolean()
     .describe("True when both Meta Ads account ID and access token are stored"),
+  openedAt: zod
+    .string()
+    .nullish()
+    .describe("Date the property opened (ISO 8601)"),
+  propertyType: zod
+    .string()
+    .nullish()
+    .describe("Category of the property, e.g. Restaurant, Wine Shop, Bar"),
+  logoUrl: zod
+    .string()
+    .nullish()
+    .describe("Base64 data URL or hosted URL for the property logo"),
+  resyUrl: zod
+    .string()
+    .nullish()
+    .describe("Resy reservation page URL for this property"),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -176,6 +218,16 @@ export const UpdatePropertyBody = zod.object({
     .string()
     .optional()
     .describe("Write-only — leave blank to keep existing value"),
+  openedAt: zod
+    .string()
+    .optional()
+    .describe("ISO 8601 date when the property opened"),
+  propertyType: zod.string().optional().describe("Category of the property"),
+  logoUrl: zod
+    .string()
+    .optional()
+    .describe("Base64 data URL for the property logo"),
+  resyUrl: zod.string().optional().describe("Resy reservation page URL"),
 });
 
 export const UpdatePropertyResponse = zod.object({
@@ -213,6 +265,22 @@ export const UpdatePropertyResponse = zod.object({
   metaAdsConfigured: zod
     .boolean()
     .describe("True when both Meta Ads account ID and access token are stored"),
+  openedAt: zod
+    .string()
+    .nullish()
+    .describe("Date the property opened (ISO 8601)"),
+  propertyType: zod
+    .string()
+    .nullish()
+    .describe("Category of the property, e.g. Restaurant, Wine Shop, Bar"),
+  logoUrl: zod
+    .string()
+    .nullish()
+    .describe("Base64 data URL or hosted URL for the property logo"),
+  resyUrl: zod
+    .string()
+    .nullish()
+    .describe("Resy reservation page URL for this property"),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -247,6 +315,35 @@ export const GetAgentParams = zod.object({
 });
 
 export const GetAgentResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  role: zod.string(),
+  description: zod.string(),
+  systemPrompt: zod.string(),
+  color: zod.string(),
+  icon: zod.string(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Update an agent's system prompt and/or description
+ */
+export const UpdateAgentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAgentBody = zod.object({
+  systemPrompt: zod
+    .string()
+    .optional()
+    .describe("Updated system prompt for this agent"),
+  description: zod
+    .string()
+    .optional()
+    .describe("Updated short description for this agent"),
+});
+
+export const UpdateAgentResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   role: zod.string(),

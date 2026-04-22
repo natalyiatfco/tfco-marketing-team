@@ -35,6 +35,7 @@ import type {
   Review,
   Task,
   TaskDetail,
+  UpdateAgentBody,
   UpdatePropertyBody,
 } from "./api.schemas";
 
@@ -699,6 +700,93 @@ export function useGetAgent<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Update an agent's system prompt and/or description
+ */
+export const getUpdateAgentUrl = (id: number) => {
+  return `/api/agents/${id}`;
+};
+
+export const updateAgent = async (
+  id: number,
+  updateAgentBody: UpdateAgentBody,
+  options?: RequestInit,
+): Promise<Agent> => {
+  return customFetch<Agent>(getUpdateAgentUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateAgentBody),
+  });
+};
+
+export const getUpdateAgentMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAgent>>,
+    TError,
+    { id: number; data: BodyType<UpdateAgentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAgent>>,
+  TError,
+  { id: number; data: BodyType<UpdateAgentBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAgent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAgent>>,
+    { id: number; data: BodyType<UpdateAgentBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateAgent(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAgentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAgent>>
+>;
+export type UpdateAgentMutationBody = BodyType<UpdateAgentBody>;
+export type UpdateAgentMutationError = ErrorType<void>;
+
+/**
+ * @summary Update an agent's system prompt and/or description
+ */
+export const useUpdateAgent = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAgent>>,
+    TError,
+    { id: number; data: BodyType<UpdateAgentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAgent>>,
+  TError,
+  { id: number; data: BodyType<UpdateAgentBody> },
+  TContext
+> => {
+  return useMutation(getUpdateAgentMutationOptions(options));
+};
 
 /**
  * @summary List tasks with optional filters

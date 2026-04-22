@@ -168,6 +168,31 @@ paths:
                 $ref: "#/components/schemas/Agent"
         "404":
           description: Not found
+    patch:
+      operationId: updateAgent
+      tags: [agents]
+      summary: Update an agent's system prompt and/or description
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAgentBody"
+      responses:
+        "200":
+          description: Updated agent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agent"
+        "404":
+          description: Not found
 
   # Tasks
   /tasks:
@@ -442,6 +467,18 @@ components:
         metaAdsConfigured:
           type: boolean
           description: "True when both Meta Ads account ID and access token are stored"
+        openedAt:
+          type: ["string", "null"]
+          description: "Date the property opened (ISO 8601)"
+        propertyType:
+          type: ["string", "null"]
+          description: "Category of the property, e.g. Restaurant, Wine Shop, Bar"
+        logoUrl:
+          type: ["string", "null"]
+          description: "Base64 data URL or hosted URL for the property logo"
+        resyUrl:
+          type: ["string", "null"]
+          description: "Resy reservation page URL for this property"
         createdAt:
           type: string
         updatedAt:
@@ -503,6 +540,18 @@ components:
         metaAdsAccessToken:
           type: string
           description: "Meta Ads access token — write-only, never returned"
+        openedAt:
+          type: string
+          description: "ISO 8601 date when the property opened"
+        propertyType:
+          type: string
+          description: "Category of the property"
+        logoUrl:
+          type: string
+          description: "Base64 data URL for the property logo"
+        resyUrl:
+          type: string
+          description: "Resy reservation page URL"
       required:
         - name
 
@@ -551,6 +600,18 @@ components:
         metaAdsAccessToken:
           type: string
           description: "Write-only — leave blank to keep existing value"
+        openedAt:
+          type: string
+          description: "ISO 8601 date when the property opened"
+        propertyType:
+          type: string
+          description: "Category of the property"
+        logoUrl:
+          type: string
+          description: "Base64 data URL for the property logo"
+        resyUrl:
+          type: string
+          description: "Resy reservation page URL"
 
     Agent:
       type: object
@@ -580,6 +641,16 @@ components:
         - color
         - icon
         - createdAt
+
+    UpdateAgentBody:
+      type: object
+      properties:
+        systemPrompt:
+          type: string
+          description: "Updated system prompt for this agent"
+        description:
+          type: string
+          description: "Updated short description for this agent"
 
     Task:
       type: object

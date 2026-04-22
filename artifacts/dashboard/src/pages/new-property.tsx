@@ -10,7 +10,29 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Upload, X } from "lucide-react";
+import { useRef } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const PROPERTY_TYPES = [
+  "Restaurant",
+  "Bar",
+  "Wine Bar",
+  "Wine Shop",
+  "Café",
+  "Bakery",
+  "Hotel",
+  "Event Venue",
+  "Food Hall",
+  "Pop-Up",
+  "Other",
+];
 
 const propertySchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -33,6 +55,10 @@ const propertySchema = z.object({
   googleAdsRefreshToken: z.string().optional(),
   metaAdsAccountId: z.string().optional(),
   metaAdsAccessToken: z.string().optional(),
+  openedAt: z.string().optional(),
+  propertyType: z.string().optional(),
+  logoUrl: z.string().optional(),
+  resyUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 });
 
 type PropertyFormValues = z.infer<typeof propertySchema>;
@@ -66,8 +92,15 @@ export default function NewProperty() {
       googleAdsRefreshToken: "",
       metaAdsAccountId: "",
       metaAdsAccessToken: "",
+      openedAt: "",
+      propertyType: "",
+      logoUrl: "",
+      resyUrl: "",
     },
   });
+
+  const logoUrl = form.watch("logoUrl");
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   function onSubmit(values: PropertyFormValues) {
     createProperty.mutate({
@@ -126,6 +159,112 @@ export default function NewProperty() {
                   </FormItem>
                 )}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Property Details</CardTitle>
+              <CardDescription>Logo, type, opening date, and reservations link.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <FormLabel>Logo</FormLabel>
+                <div className="flex items-start gap-4">
+                  <div className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-muted/30 flex-shrink-0">
+                    {logoUrl ? (
+                      <img src={logoUrl} alt="Logo preview" className="w-full h-full object-cover rounded-lg" />
+                    ) : (
+                      <Upload className="w-6 h-6 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          form.setValue("logoUrl", ev.target?.result as string, { shouldDirty: true });
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => logoInputRef.current?.click()}
+                    >
+                      <Upload className="w-4 h-4 mr-2" /> Upload Logo
+                    </Button>
+                    {logoUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:bg-destructive/10"
+                        onClick={() => form.setValue("logoUrl", "", { shouldDirty: true })}
+                      >
+                        <X className="w-4 h-4 mr-2" /> Remove
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground">PNG, JPG, SVG — recommended 400×400px</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="propertyType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Property Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {PROPERTY_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="openedAt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date Opened</FormLabel>
+                      <FormControl><Input type="date" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="resyUrl"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Resy Page URL</FormLabel>
+                      <FormControl><Input type="url" placeholder="https://resy.com/cities/.../venues/..." {...field} /></FormControl>
+                      <FormDescription className="text-xs">Link to this property's Resy reservation page</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </CardContent>
           </Card>
 
