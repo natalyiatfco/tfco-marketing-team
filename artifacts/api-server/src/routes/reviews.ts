@@ -74,6 +74,16 @@ router.post("/reviews/:id/decide", async (req, res): Promise<void> => {
     return;
   }
 
+  const taskStatus = parsed.data.decision === "approved"
+    ? "approved"
+    : parsed.data.decision === "rejected"
+    ? "rejected"
+    : "revision_requested";
+
+  await db.update(tasksTable)
+    .set({ status: taskStatus, updatedAt: new Date() })
+    .where(eq(tasksTable.id, review.taskId));
+
   res.json(review);
 });
 

@@ -7,10 +7,11 @@ import { Clock, CheckCircle2, RefreshCw, XCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Reviews() {
-  const { data: pendingReviews, isLoading: loadingPending } = useListReviews({ decision: "null" });
-  const { data: completedReviews, isLoading: loadingCompleted } = useListReviews(); // This endpoint returns all when no filter, we can filter client side for now.
+  const { data: allReviews, isLoading: loadingPending } = useListReviews();
+  const { data: completedReviews, isLoading: loadingCompleted } = useListReviews();
 
-  const allProcessedReviews = completedReviews?.filter(r => r.decision !== null) || [];
+  const pendingReviews = allReviews?.filter(r => !r.decision) || [];
+  const allProcessedReviews = completedReviews?.filter(r => !!r.decision) || [];
 
   return (
     <div className="space-y-8">

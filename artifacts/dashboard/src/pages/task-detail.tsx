@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { CheckCircle2, Clock, Loader2, AlertCircle, RefreshCw, XCircle, ChevronLeft } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, AlertCircle, RefreshCw, XCircle, ChevronLeft, Download, Star } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 export default function TaskDetail() {
@@ -84,8 +84,25 @@ export default function TaskDetail() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
           <Card>
-            <CardHeader className="bg-muted/30 border-b border-border">
+            <CardHeader className="bg-muted/30 border-b border-border flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Agent Output</CardTitle>
+              {task.output && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const blob = new Blob([task.output ?? ""], { type: "text/plain" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${task.title.replace(/\s+/g, "-").toLowerCase()}.txt`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  <Download className="w-4 h-4 mr-2" /> Download
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               {task.output ? (
@@ -148,11 +165,36 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
+          {task.review?.managerFeedback && (
+            <Card>
+              <CardHeader className="bg-blue-500/5 border-b border-border pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded flex items-center justify-center text-white text-base bg-blue-700">🎯</div>
+                  <div>
+                    <CardTitle className="text-lg">Casey's Review</CardTitle>
+                    <CardDescription>AI Manager assessment</CardDescription>
+                  </div>
+                  {task.review.managerScore != null && (
+                    <div className="ml-auto flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 rounded px-3 py-1">
+                      <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                      <span className="font-bold text-amber-600">{task.review.managerScore}/10</span>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/90">
+                  {task.review.managerFeedback}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {task.status === 'completed' && task.review && !task.review.decision && (
             <Card className="border-primary">
               <CardHeader className="bg-primary/5 pb-4">
-                <CardTitle className="text-lg">Manager Review</CardTitle>
-                <CardDescription>Review the agent's work before publishing</CardDescription>
+                <CardTitle className="text-lg">Your Decision</CardTitle>
+                <CardDescription>Approve, request changes, or reject this output</CardDescription>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
                 <div className="space-y-2">
