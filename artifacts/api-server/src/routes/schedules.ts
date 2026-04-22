@@ -11,46 +11,97 @@ const router: IRouter = Router();
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+function getTzOffsetMinutes(timezone: string, date: Date): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const m: Record<string, string> = {};
+  for (const p of parts) if (p.type !== "literal") m[p.type] = p.value;
+  const h = parseInt(m.hour);
+  const localAsUTC = Date.UTC(
+    parseInt(m.year), parseInt(m.month) - 1, parseInt(m.day),
+    h === 24 ? 0 : h, parseInt(m.minute), parseInt(m.second)
+  );
+  return (localAsUTC - date.getTime()) / 60000;
+}
+
+function makeLocalDate(year: number, month: number, day: number, hour: number, timezone: string): Date {
+  const isoStr = `${String(year).padStart(4, "0")}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hour).padStart(2, "0")}:00:00`;
+  const approx = new Date(`${isoStr}Z`);
+  const offsetMin = getTzOffsetMinutes(timezone, approx);
+  return new Date(approx.getTime() - offsetMin * 60000);
+}
+
+function getLocalDateParts(date: Date, timezone: string): { year: number; month: number; day: number; weekday: number; hour: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", hour12: false, weekday: "short",
+  }).formatToParts(date);
+  const m: Record<string, string> = {};
+  for (const p of parts) if (p.type !== "literal") m[p.type] = p.value;
+  const weekdays: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return {
+    year: parseInt(m.year),
+    month: parseInt(m.month) - 1,
+    day: parseInt(m.day),
+    weekday: weekdays[m.weekday] ?? 0,
+    hour: parseInt(m.hour),
+  };
+}
+
+function clampDayOfMonth(year: number, month: number, targetDay: number): number {
+  return Math.min(targetDay, new Date(year, month + 1, 0).getDate());
+}
+
 function computeNextRunAt(
   frequency: string,
   dayOfWeek: number | null,
   dayOfMonth: number | null,
   hour: number,
-  _timezone: string,
+  timezone: string,
   after: Date = new Date()
 ): Date {
-  const next = new Date(after);
-  next.setSeconds(0);
-  next.setMilliseconds(0);
-  next.setMinutes(0);
-  next.setHours(hour);
+  const local = getLocalDateParts(after, timezone);
 
   if (frequency === "daily") {
-    if (next <= after) next.setDate(next.getDate() + 1);
-    return next;
+    let candidate = makeLocalDate(local.year, local.month, local.day, hour, timezone);
+    if (candidate.getTime() <= after.getTime()) {
+      const tomorrow = new Date(after.getTime() + 86400000);
+      const t = getLocalDateParts(tomorrow, timezone);
+      candidate = makeLocalDate(t.year, t.month, t.day, hour, timezone);
+    }
+    return candidate;
   }
 
   if (frequency === "weekly") {
     const targetDay = dayOfWeek ?? 1;
-    const currentDay = next.getDay();
-    let daysUntil = (targetDay - currentDay + 7) % 7;
-    if (daysUntil === 0 && next <= after) daysUntil = 7;
-    next.setDate(next.getDate() + daysUntil);
-    return next;
+    let daysOffset = (targetDay - local.weekday + 7) % 7;
+    const todayCandidate = makeLocalDate(local.year, local.month, local.day, hour, timezone);
+    if (daysOffset === 0 && todayCandidate.getTime() <= after.getTime()) daysOffset = 7;
+    const futureDate = new Date(after.getTime() + daysOffset * 86400000);
+    const f = getLocalDateParts(futureDate, timezone);
+    return makeLocalDate(f.year, f.month, f.day, hour, timezone);
   }
 
   if (frequency === "monthly") {
-    const targetDate = dayOfMonth ?? 1;
-    next.setDate(targetDate);
-    if (next <= after) {
-      next.setMonth(next.getMonth() + 1);
-      next.setDate(targetDate);
+    const targetDay = dayOfMonth ?? 1;
+    const clampedDay = clampDayOfMonth(local.year, local.month, targetDay);
+    let candidate = makeLocalDate(local.year, local.month, clampedDay, hour, timezone);
+    if (candidate.getTime() <= after.getTime()) {
+      let nextMonth = local.month + 1;
+      let nextYear = local.year;
+      if (nextMonth > 11) { nextMonth = 0; nextYear++; }
+      const clampedNext = clampDayOfMonth(nextYear, nextMonth, targetDay);
+      candidate = makeLocalDate(nextYear, nextMonth, clampedNext, hour, timezone);
     }
-    return next;
+    return candidate;
   }
 
-  next.setDate(next.getDate() + 1);
-  return next;
+  return new Date(after.getTime() + 86400000);
 }
 
 async function buildScheduleResponse(schedule: typeof schedulesTable.$inferSelect) {

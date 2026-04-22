@@ -241,24 +241,19 @@ async function fetchHubSpotData(
     const apiKey = safeDecrypt(property.hubspotApiKey);
     const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
 
-    const contactsRes = await fetch(
-      "https://api.hubapi.com/crm/v3/objects/contacts?limit=1&properties=createdate",
-      { headers }
-    );
-
-    if (!contactsRes.ok) {
-      const err = await contactsRes.text().catch(() => "unknown");
-      logger.warn({ err }, "HubSpot contacts API failed");
-      return { available: true, contacts: { total: 0, newInPeriod: 0 }, deals: { total: 0, totalValue: 0, byStage: {} }, error: "HubSpot API query failed — check API key and scopes." };
-    }
-
-    const contactsData = (await contactsRes.json()) as { total: number };
-    const totalContacts = contactsData.total ?? 0;
-
     const fromMs = from.getTime();
-    const newContactsRes = await fetch(
-      `https://api.hubapi.com/crm/v3/objects/contacts/search`,
-      {
+
+    const [totalContactsRes, newContactsRes] = await Promise.all([
+      fetch("https://api.hubapi.com/crm/v3/objects/contacts/search", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          filterGroups: [],
+          properties: [],
+          limit: 1,
+        }),
+      }),
+      fetch("https://api.hubapi.com/crm/v3/objects/contacts/search", {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -268,8 +263,17 @@ async function fetchHubSpotData(
           properties: ["createdate"],
           limit: 1,
         }),
-      }
-    );
+      }),
+    ]);
+
+    if (!totalContactsRes.ok) {
+      const err = await totalContactsRes.text().catch(() => "unknown");
+      logger.warn({ err }, "HubSpot contacts API failed");
+      return { available: true, contacts: { total: 0, newInPeriod: 0 }, deals: { total: 0, totalValue: 0, byStage: {} }, error: "HubSpot API query failed — check API key and scopes." };
+    }
+
+    const totalContactsData = (await totalContactsRes.json()) as { total: number };
+    const totalContacts = totalContactsData.total ?? 0;
     const newContactsData = newContactsRes.ok ? ((await newContactsRes.json()) as { total: number }) : { total: 0 };
 
     const dealsRes = await fetch(
