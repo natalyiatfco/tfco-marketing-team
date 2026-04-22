@@ -6,13 +6,14 @@ import {
   useDeleteSchedule,
   useListProperties,
   useListAgents,
+  useListTasks,
   getListSchedulesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,14 +39,22 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarClock, Pencil, Trash2, Plus, Pause, Play } from "lucide-react";
+import { CalendarClock, Pencil, Trash2, Plus, Pause, Play, History, ExternalLink, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 const TIMEZONES = [
@@ -97,6 +106,7 @@ type ScheduleItem = {
   status: "active" | "paused";
   nextRunAt?: string | null;
   lastRunAt?: string | null;
+  lastTaskId?: number | null;
 };
 
 function ScheduleDialog({
@@ -358,6 +368,98 @@ function ScheduleDialog({
   );
 }
 
+const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
+  pending: { label: "Pending", icon: <Clock className="h-3 w-3" />, className: "text-muted-foreground" },
+  running: { label: "Running", icon: <Loader2 className="h-3 w-3 animate-spin" />, className: "text-blue-500" },
+  reviewing: { label: "Reviewing", icon: <Clock className="h-3 w-3" />, className: "text-yellow-500" },
+  completed: { label: "Completed", icon: <CheckCircle2 className="h-3 w-3" />, className: "text-green-500" },
+  approved: { label: "Approved", icon: <CheckCircle2 className="h-3 w-3" />, className: "text-green-600" },
+  rejected: { label: "Rejected", icon: <XCircle className="h-3 w-3" />, className: "text-destructive" },
+  revision_requested: { label: "Revision Needed", icon: <Clock className="h-3 w-3" />, className: "text-orange-500" },
+  failed: { label: "Failed", icon: <XCircle className="h-3 w-3" />, className: "text-destructive" },
+};
+
+function ScheduleHistoryDrawer({
+  schedule,
+  open,
+  onClose,
+}: {
+  schedule: ScheduleItem | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { data: tasks = [], isLoading } = useListTasks(
+    schedule ? { scheduleId: schedule.id } : {},
+    { query: { enabled: !!schedule && open } }
+  );
+
+  const recentTasks = (tasks as { id: number; title: string; status: string; createdAt: string; updatedAt: string }[]).slice(0, 20);
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetHeader className="mb-4">
+          <SheetTitle className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Task History
+          </SheetTitle>
+          {schedule && (
+            <SheetDescription>
+              Recent tasks spawned by <span className="font-medium text-foreground">{schedule.name}</span>
+            </SheetDescription>
+          )}
+        </SheetHeader>
+
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+            ))}
+          </div>
+        ) : recentTasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+            <History className="h-10 w-10 mb-3 opacity-40" />
+            <p className="text-sm font-medium">No tasks yet</p>
+            <p className="text-xs mt-1">Tasks will appear here once this schedule runs.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {recentTasks.map((task) => {
+              const cfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.pending;
+              return (
+                <div
+                  key={task.id}
+                  className="flex items-start gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                >
+                  <div className={`flex items-center gap-1 mt-0.5 shrink-0 ${cfg.className}`}>
+                    {cfg.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium leading-tight line-clamp-2">{task.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className={`text-xs px-1.5 py-0 ${cfg.className}`}>
+                        {cfg.label}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(task.createdAt), "MMM d, h:mm a")}
+                      </span>
+                    </div>
+                  </div>
+                  <Link href={`/tasks/${task.id}`} onClick={onClose}>
+                    <Button variant="ghost" size="icon" className="shrink-0 h-7 w-7">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function frequencyLabel(s: ScheduleItem): string {
   if (s.frequency === "daily") return `Daily at ${formatHour(s.hour)}`;
   if (s.frequency === "weekly") return `Every ${DAY_NAMES[s.dayOfWeek ?? 1]} at ${formatHour(s.hour)}`;
@@ -378,6 +480,8 @@ export default function Schedules() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ScheduleItem | undefined>(undefined);
   const [filterPropertyId, setFilterPropertyId] = useState<string>("all");
+  const [historySchedule, setHistorySchedule] = useState<ScheduleItem | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const { data: properties = [] } = useListProperties();
   const { data: schedules = [], isLoading } = useListSchedules(
@@ -496,9 +600,24 @@ export default function Schedules() {
                       Last: {format(new Date(s.lastRunAt), "MMM d")}
                     </p>
                   )}
+                  {s.lastTaskId && (
+                    <Link href={`/tasks/${s.lastTaskId}`}>
+                      <p className="text-xs text-primary hover:underline mt-0.5 cursor-pointer">
+                        View last task →
+                      </p>
+                    </Link>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="View task history"
+                    onClick={() => { setHistorySchedule(s); setHistoryOpen(true); }}
+                  >
+                    <History className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -549,6 +668,12 @@ export default function Schedules() {
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); setEditing(undefined); }}
         initial={editing}
+      />
+
+      <ScheduleHistoryDrawer
+        schedule={historySchedule}
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
       />
     </div>
   );

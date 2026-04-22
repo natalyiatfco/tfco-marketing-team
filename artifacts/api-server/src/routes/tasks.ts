@@ -26,6 +26,7 @@ router.get("/tasks", async (req, res): Promise<void> => {
       agentIcon: agentsTable.icon,
       propertyId: tasksTable.propertyId,
       propertyName: propertiesTable.name,
+      scheduleId: tasksTable.scheduleId,
       title: tasksTable.title,
       inputPrompt: tasksTable.inputPrompt,
       output: tasksTable.output,
@@ -47,6 +48,7 @@ router.get("/tasks", async (req, res): Promise<void> => {
     if (queryParams.data.status && t.status !== queryParams.data.status) return false;
     if (queryParams.data.propertyId && t.propertyId !== queryParams.data.propertyId) return false;
     if (queryParams.data.agentId && t.agentId !== queryParams.data.agentId) return false;
+    if (queryParams.data.scheduleId && t.scheduleId !== queryParams.data.scheduleId) return false;
     return true;
   });
 

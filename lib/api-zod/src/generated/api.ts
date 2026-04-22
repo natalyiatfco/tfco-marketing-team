@@ -420,6 +420,7 @@ export const ListTasksQueryParams = zod.object({
   status: zod.coerce.string().optional(),
   propertyId: zod.coerce.number().optional(),
   agentId: zod.coerce.number().optional(),
+  scheduleId: zod.coerce.number().optional(),
 });
 
 export const ListTasksResponseItem = zod.object({
@@ -431,6 +432,7 @@ export const ListTasksResponseItem = zod.object({
   agentIcon: zod.string(),
   propertyId: zod.number(),
   propertyName: zod.string(),
+  scheduleId: zod.number().nullish(),
   title: zod.string(),
   inputPrompt: zod.string(),
   output: zod.string().nullish(),

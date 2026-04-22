@@ -8,6 +8,7 @@ export const tasksTable = pgTable("tasks", {
   id: serial("id").primaryKey(),
   agentId: integer("agent_id").notNull().references(() => agentsTable.id),
   propertyId: integer("property_id").notNull().references(() => propertiesTable.id),
+  scheduleId: integer("schedule_id"),
   title: text("title").notNull(),
   inputPrompt: text("input_prompt").notNull(),
   output: text("output"),

@@ -191,6 +191,8 @@ export interface Task {
   agentIcon: string;
   propertyId: number;
   propertyName: string;
+  /** @nullable */
+  scheduleId?: number | null;
   title: string;
   inputPrompt: string;
   /** @nullable */
@@ -633,6 +635,7 @@ export type ListTasksParams = {
   status?: string;
   propertyId?: number;
   agentId?: number;
+  scheduleId?: number;
 };
 
 export type GetPropertyAnalyticsDataParams = {

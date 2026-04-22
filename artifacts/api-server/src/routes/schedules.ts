@@ -297,10 +297,13 @@ async function dispatchScheduledTask(
   const [task] = await db.insert(tasksTable).values({
     agentId: schedule.agentId,
     propertyId: schedule.propertyId,
+    scheduleId: schedule.id,
     title: `[Scheduled] ${schedule.taskType} — ${property.name}`,
     inputPrompt: promptWithContext,
     status: "running",
   }).returning();
+
+  await db.update(schedulesTable).set({ lastTaskId: task.id, updatedAt: new Date() }).where(eq(schedulesTable.id, schedule.id));
 
   logger.info({ taskId: task.id, scheduleId: schedule.id, agent: agent.name }, "Dispatched scheduled task");
 
