@@ -10,7 +10,7 @@ import { useLocation, useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Trash2, CheckCircle2, Lock, Upload, X } from "lucide-react";
+import { ChevronLeft, Trash2, CheckCircle2, Lock, Upload, X, Download } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -656,6 +656,35 @@ export default function PropertyDetail() {
           </div>
         </form>
       </Form>
+
+      {property && (property.googleAdsConfigured || property.metaAdsConfigured || property.hubspotConfigured) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Analytics Export</CardTitle>
+            <CardDescription>
+              Download raw performance data from your connected ad platforms and CRM as a spreadsheet-ready CSV.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {(["7days", "30days", "90days"] as const).map((range) => (
+                <a
+                  key={range}
+                  href={`/api/properties/${property.id}/analytics-data.csv?dateRange=${range}`}
+                  download
+                  className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Last {range === "7days" ? "7 Days" : range === "30days" ? "30 Days" : "90 Days"}
+                </a>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Includes Google Ads, Meta Ads, HubSpot CRM, and email campaign data for all connected platforms.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

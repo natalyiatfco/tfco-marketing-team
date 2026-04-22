@@ -32,10 +32,23 @@ export interface MetaAdsData {
   error?: string;
 }
 
+export interface HubSpotEmailCampaign {
+  id: string;
+  name: string;
+  subject: string;
+  sentAt?: string;
+  sent?: number;
+  opens?: number;
+  clicks?: number;
+  openRate?: number;
+  clickRate?: number;
+}
+
 export interface HubSpotData {
   available: boolean;
   contacts?: { total: number; newInPeriod: number };
   deals?: { total: number; totalValue: number; byStage: Record<string, number> };
+  emailCampaigns?: { campaigns: HubSpotEmailCampaign[]; note?: string };
   error?: string;
 }
 
@@ -296,10 +309,47 @@ async function fetchHubSpotData(
       }
     }
 
+    let emailCampaigns: HubSpotData["emailCampaigns"] = undefined;
+    try {
+      const emailsRes = await fetch(
+        "https://api.hubapi.com/marketing/v3/emails?limit=10&orderBy=-updatedAt",
+        { headers }
+      );
+      if (emailsRes.ok) {
+        const emailsData = (await emailsRes.json()) as {
+          results: Array<{
+            id: string;
+            name: string;
+            subject: string;
+            publishDate?: string;
+            stats?: { sent?: number; open?: number; click?: number; openRate?: number; clickRate?: number };
+          }>;
+        };
+        emailCampaigns = {
+          campaigns: (emailsData.results ?? []).map((e) => ({
+            id: e.id,
+            name: e.name,
+            subject: e.subject ?? "",
+            sentAt: e.publishDate,
+            sent: e.stats?.sent,
+            opens: e.stats?.open,
+            clicks: e.stats?.click,
+            openRate: e.stats?.openRate ? parseFloat((e.stats.openRate * 100).toFixed(1)) : undefined,
+            clickRate: e.stats?.clickRate ? parseFloat((e.stats.clickRate * 100).toFixed(1)) : undefined,
+          })),
+        };
+      } else if (emailsRes.status === 403) {
+        emailCampaigns = { campaigns: [], note: "Email marketing stats require 'content' scope on the HubSpot private app." };
+      }
+    } catch {
+      emailCampaigns = { campaigns: [], note: "Email campaign data unavailable." };
+    }
+
     return {
       available: true,
       contacts: { total: totalContacts, newInPeriod: newContactsData.total ?? 0 },
       deals: { total: totalDeals, totalValue: parseFloat(totalValue.toFixed(2)), byStage },
+      emailCampaigns,
     };
   } catch (err) {
     logger.warn({ err }, "HubSpot fetch threw exception");
@@ -391,6 +441,17 @@ export function formatAnalyticsDataForPrompt(data: AnalyticsData): string {
       Object.entries(data.hubspot.deals.byStage).forEach(([stage, count]) => {
         lines.push(`  - ${stage}: ${count}`);
       });
+    }
+    if (data.hubspot.emailCampaigns && data.hubspot.emailCampaigns.campaigns.length > 0) {
+      lines.push("Email Campaign Attribution (recent):");
+      data.hubspot.emailCampaigns.campaigns.slice(0, 5).forEach((e) => {
+        const sent = e.sent ? `${e.sent.toLocaleString()} sent` : "";
+        const openRate = e.openRate !== undefined ? `, ${e.openRate}% open rate` : "";
+        const clickRate = e.clickRate !== undefined ? `, ${e.clickRate}% CTR` : "";
+        lines.push(`  - "${e.subject}" (${e.name}): ${sent}${openRate}${clickRate}`);
+      });
+    } else if (data.hubspot.emailCampaigns?.note) {
+      lines.push(`Email Campaigns: ${data.hubspot.emailCampaigns.note}`);
     }
     if (data.hubspot.error) lines.push(`Note: ${data.hubspot.error}`);
   } else if (data.hubspot.available) {

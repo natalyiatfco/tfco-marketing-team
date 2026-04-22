@@ -211,7 +211,7 @@ router.patch("/schedules/:id", async (req, res): Promise<void> => {
   const newHour = hour !== undefined ? hour : existing.hour;
   const newTimezone = timezone ?? existing.timezone;
 
-  if (frequency !== undefined || dayOfWeek !== undefined || dayOfMonth !== undefined || hour !== undefined) {
+  if (frequency !== undefined || dayOfWeek !== undefined || dayOfMonth !== undefined || hour !== undefined || timezone !== undefined) {
     updatePayload.frequency = newFrequency;
     updatePayload.dayOfWeek = newDayOfWeek ?? null;
     updatePayload.dayOfMonth = newDayOfMonth ?? null;
