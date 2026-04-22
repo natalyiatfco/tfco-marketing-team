@@ -391,16 +391,10 @@ components:
           type: ["string", "null"]
         linkedinHandle:
           type: ["string", "null"]
-        wordpressUrl:
-          type: ["string", "null"]
-        wordpressUsername:
-          type: ["string", "null"]
-        wordpressAppPassword:
-          type: ["string", "null"]
-        squarespaceApiKey:
-          type: ["string", "null"]
-        squarespaceCollectionId:
-          type: ["string", "null"]
+        wordpressConfigured:
+          type: boolean
+        squarespaceConfigured:
+          type: boolean
         createdAt:
           type: string
         updatedAt:
@@ -408,6 +402,8 @@ components:
       required:
         - id
         - name
+        - wordpressConfigured
+        - squarespaceConfigured
         - createdAt
         - updatedAt
 
@@ -782,10 +778,12 @@ components:
       properties:
         platform:
           type: string
-          description: "Target CMS platform: 'wordpress' or 'squarespace'"
+          enum: [wordpress, squarespace]
+          description: "Target CMS platform"
         publishStatus:
           type: string
-          description: "'draft' or 'publish' (WordPress) / 'draft' or 'live' (Squarespace)"
+          enum: [draft, publish]
+          description: "'draft' saves without going live; 'publish' makes it immediately visible"
         postTitle:
           type: string
           description: "Override the post title (defaults to task title)"

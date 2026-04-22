@@ -161,7 +161,7 @@ router.post("/tasks/:id/publish", async (req, res): Promise<void> => {
         return;
       }
 
-      const isDraft = publishStatus !== "publish" && publishStatus !== "live";
+      const isDraft = publishStatus !== "publish";
       const result = await publishToSquarespace(
         property.squarespaceApiKey,
         property.squarespaceCollectionId,

@@ -85,13 +85,13 @@ export default function TaskDetail() {
     publishTask.mutate({
       id,
       data: {
-        platform: publishPlatform,
+        platform: effectivePlatform,
         publishStatus: publishStatusChoice,
       }
     }, {
       onSuccess: (result) => {
         toast({
-          title: `Published to ${publishPlatform === "wordpress" ? "WordPress" : "Squarespace"}`,
+          title: `Published to ${effectivePlatform === "wordpress" ? "WordPress" : "Squarespace"}`,
           description: result.publishUrl ? `View at: ${result.publishUrl}` : undefined,
         });
         queryClient.invalidateQueries({ queryKey: getGetTaskQueryKey(id) });
@@ -117,6 +117,11 @@ export default function TaskDetail() {
     ...(task.wordpressConfigured ? [{ value: "wordpress" as const, label: "WordPress" }] : []),
     ...(task.squarespaceConfigured ? [{ value: "squarespace" as const, label: "Squarespace" }] : []),
   ];
+
+  const effectivePlatform: "wordpress" | "squarespace" =
+    availablePlatforms.find((p) => p.value === publishPlatform)?.value ??
+    availablePlatforms[0]?.value ??
+    "wordpress";
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -347,7 +352,7 @@ export default function TaskDetail() {
                   <div className="space-y-2">
                     <Label>Platform</Label>
                     <Select
-                      value={publishPlatform}
+                      value={effectivePlatform}
                       onValueChange={(v) => setPublishPlatform(v as "wordpress" | "squarespace")}
                     >
                       <SelectTrigger>
@@ -386,7 +391,7 @@ export default function TaskDetail() {
                   {publishTask.isPending ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Publishing...</>
                   ) : (
-                    <><Send className="w-4 h-4 mr-2" /> Publish to {availablePlatforms.find(p => p.value === publishPlatform)?.label ?? "CMS"}</>
+                    <><Send className="w-4 h-4 mr-2" /> Publish to {availablePlatforms.find(p => p.value === effectivePlatform)?.label ?? "CMS"}</>
                   )}
                 </Button>
               </CardContent>

@@ -32,16 +32,8 @@ export interface Property {
   twitterHandle?: string | null;
   /** @nullable */
   linkedinHandle?: string | null;
-  /** @nullable */
-  wordpressUrl?: string | null;
-  /** @nullable */
-  wordpressUsername?: string | null;
-  /** @nullable */
-  wordpressAppPassword?: string | null;
-  /** @nullable */
-  squarespaceApiKey?: string | null;
-  /** @nullable */
-  squarespaceCollectionId?: string | null;
+  wordpressConfigured: boolean;
+  squarespaceConfigured: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -222,11 +214,33 @@ export interface ActivityItem {
   createdAt: string;
 }
 
+/**
+ * Target CMS platform
+ */
+export type PublishTaskBodyPlatform =
+  (typeof PublishTaskBodyPlatform)[keyof typeof PublishTaskBodyPlatform];
+
+export const PublishTaskBodyPlatform = {
+  wordpress: "wordpress",
+  squarespace: "squarespace",
+} as const;
+
+/**
+ * 'draft' saves without going live; 'publish' makes it immediately visible
+ */
+export type PublishTaskBodyPublishStatus =
+  (typeof PublishTaskBodyPublishStatus)[keyof typeof PublishTaskBodyPublishStatus];
+
+export const PublishTaskBodyPublishStatus = {
+  draft: "draft",
+  publish: "publish",
+} as const;
+
 export interface PublishTaskBody {
-  /** Target CMS platform: 'wordpress' or 'squarespace' */
-  platform: string;
-  /** 'draft' or 'publish' (WordPress) / 'draft' or 'live' (Squarespace) */
-  publishStatus: string;
+  /** Target CMS platform */
+  platform: PublishTaskBodyPlatform;
+  /** 'draft' saves without going live; 'publish' makes it immediately visible */
+  publishStatus: PublishTaskBodyPublishStatus;
   /** Override the post title (defaults to task title) */
   postTitle?: string;
 }

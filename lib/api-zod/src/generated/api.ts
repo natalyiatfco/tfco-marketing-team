@@ -31,11 +31,8 @@ export const ListPropertiesResponseItem = zod.object({
   facebookHandle: zod.string().nullish(),
   twitterHandle: zod.string().nullish(),
   linkedinHandle: zod.string().nullish(),
-  wordpressUrl: zod.string().nullish(),
-  wordpressUsername: zod.string().nullish(),
-  wordpressAppPassword: zod.string().nullish(),
-  squarespaceApiKey: zod.string().nullish(),
-  squarespaceCollectionId: zod.string().nullish(),
+  wordpressConfigured: zod.boolean(),
+  squarespaceConfigured: zod.boolean(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -83,11 +80,8 @@ export const GetPropertyResponse = zod.object({
   facebookHandle: zod.string().nullish(),
   twitterHandle: zod.string().nullish(),
   linkedinHandle: zod.string().nullish(),
-  wordpressUrl: zod.string().nullish(),
-  wordpressUsername: zod.string().nullish(),
-  wordpressAppPassword: zod.string().nullish(),
-  squarespaceApiKey: zod.string().nullish(),
-  squarespaceCollectionId: zod.string().nullish(),
+  wordpressConfigured: zod.boolean(),
+  squarespaceConfigured: zod.boolean(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -131,11 +125,8 @@ export const UpdatePropertyResponse = zod.object({
   facebookHandle: zod.string().nullish(),
   twitterHandle: zod.string().nullish(),
   linkedinHandle: zod.string().nullish(),
-  wordpressUrl: zod.string().nullish(),
-  wordpressUsername: zod.string().nullish(),
-  wordpressAppPassword: zod.string().nullish(),
-  squarespaceApiKey: zod.string().nullish(),
-  squarespaceCollectionId: zod.string().nullish(),
+  wordpressConfigured: zod.boolean(),
+  squarespaceConfigured: zod.boolean(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -283,12 +274,12 @@ export const PublishTaskParams = zod.object({
 
 export const PublishTaskBody = zod.object({
   platform: zod
-    .string()
-    .describe("Target CMS platform: 'wordpress' or 'squarespace'"),
+    .enum(["wordpress", "squarespace"])
+    .describe("Target CMS platform"),
   publishStatus: zod
-    .string()
+    .enum(["draft", "publish"])
     .describe(
-      "'draft' or 'publish' (WordPress) \/ 'draft' or 'live' (Squarespace)",
+      "'draft' saves without going live; 'publish' makes it immediately visible",
     ),
   postTitle: zod
     .string()

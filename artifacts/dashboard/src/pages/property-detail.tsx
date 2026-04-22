@@ -10,7 +10,7 @@ import { useLocation, useParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Trash2, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, Trash2, CheckCircle2, Lock } from "lucide-react";
 import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -64,6 +64,11 @@ export default function PropertyDetail() {
     resolver: zodResolver(propertySchema),
     defaultValues: {
       name: "",
+      wordpressUrl: "",
+      wordpressUsername: "",
+      wordpressAppPassword: "",
+      squarespaceApiKey: "",
+      squarespaceCollectionId: "",
     },
   });
 
@@ -81,11 +86,11 @@ export default function PropertyDetail() {
         facebookHandle: property.facebookHandle || "",
         twitterHandle: property.twitterHandle || "",
         linkedinHandle: property.linkedinHandle || "",
-        wordpressUrl: property.wordpressUrl || "",
-        wordpressUsername: property.wordpressUsername || "",
-        wordpressAppPassword: property.wordpressAppPassword || "",
-        squarespaceApiKey: property.squarespaceApiKey || "",
-        squarespaceCollectionId: property.squarespaceCollectionId || "",
+        wordpressUrl: "",
+        wordpressUsername: "",
+        wordpressAppPassword: "",
+        squarespaceApiKey: "",
+        squarespaceCollectionId: "",
       });
     }
   }, [property, form]);
@@ -126,9 +131,6 @@ export default function PropertyDetail() {
   if (isLoading) return <div className="p-8">Loading...</div>;
   if (!property) return <div className="p-8">Property not found</div>;
 
-  const wpConfigured = !!(property.wordpressUrl && property.wordpressUsername && property.wordpressAppPassword);
-  const sqConfigured = !!(property.squarespaceApiKey && property.squarespaceCollectionId);
-
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -160,14 +162,14 @@ export default function PropertyDetail() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Edit {property.name}</h1>
         <div className="flex items-center gap-2 mt-2">
-          {wpConfigured && (
+          {property.wordpressConfigured && (
             <Badge variant="secondary" className="gap-1 text-xs">
-              <CheckCircle2 className="w-3 h-3 text-green-500" /> WordPress
+              <CheckCircle2 className="w-3 h-3 text-green-500" /> WordPress Connected
             </Badge>
           )}
-          {sqConfigured && (
+          {property.squarespaceConfigured && (
             <Badge variant="secondary" className="gap-1 text-xs">
-              <CheckCircle2 className="w-3 h-3 text-green-500" /> Squarespace
+              <CheckCircle2 className="w-3 h-3 text-green-500" /> Squarespace Connected
             </Badge>
           )}
         </div>
@@ -257,19 +259,25 @@ export default function PropertyDetail() {
               <CardTitle>CMS Publishing</CardTitle>
               <CardDescription>
                 Connect WordPress and Squarespace so approved content can be published directly from the platform.
-                Credentials are stored securely and never exposed in the UI.
+                Credentials are write-only and never returned by the API.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-semibold">WordPress</h4>
-                  {wpConfigured && (
+                  {property.wordpressConfigured ? (
                     <Badge variant="secondary" className="gap-1 text-xs">
                       <CheckCircle2 className="w-3 h-3 text-green-500" /> Connected
                     </Badge>
-                  )}
+                  ) : null}
                 </div>
+                {property.wordpressConfigured && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+                    <Lock className="w-3 h-3" />
+                    Credentials are stored — enter new values below to update them.
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Use an <a href="https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/" target="_blank" rel="noreferrer" className="underline">Application Password</a> from WordPress Users → Profile → Application Passwords.
                 </p>
@@ -291,7 +299,7 @@ export default function PropertyDetail() {
                   <FormField control={form.control} name="wordpressAppPassword" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Application Password</FormLabel>
-                      <FormControl><Input type="password" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx" {...field} value={field.value || ""} /></FormControl>
+                      <FormControl><Input type="password" placeholder={property.wordpressConfigured ? "Enter to update" : "xxxx xxxx xxxx xxxx xxxx xxxx"} {...field} value={field.value || ""} /></FormControl>
                       <FormDescription className="text-xs">Generated in WordPress profile settings.</FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -302,12 +310,18 @@ export default function PropertyDetail() {
               <div className="border-t border-border pt-6 space-y-3">
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-semibold">Squarespace</h4>
-                  {sqConfigured && (
+                  {property.squarespaceConfigured ? (
                     <Badge variant="secondary" className="gap-1 text-xs">
                       <CheckCircle2 className="w-3 h-3 text-green-500" /> Connected
                     </Badge>
-                  )}
+                  ) : null}
                 </div>
+                {property.squarespaceConfigured && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+                    <Lock className="w-3 h-3" />
+                    Credentials are stored — enter new values below to update them.
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Generate an API key from Squarespace Settings → Developer API Keys. The Collection ID is found in your blog URL structure.
                 </p>
@@ -315,7 +329,7 @@ export default function PropertyDetail() {
                   <FormField control={form.control} name="squarespaceApiKey" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Squarespace API Key</FormLabel>
-                      <FormControl><Input type="password" placeholder="API key" {...field} value={field.value || ""} /></FormControl>
+                      <FormControl><Input type="password" placeholder={property.squarespaceConfigured ? "Enter to update" : "API key"} {...field} value={field.value || ""} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
