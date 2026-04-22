@@ -382,12 +382,14 @@ async function pushToMetaAds(
     age_max: campaign.audienceAgeMax,
   };
 
+  // Meta Marketing API geo_locations expects ISO 3166-1 alpha-2 country codes.
+  // The prompt format includes city/state strings (e.g. "New York, NY") which cannot
+  // be reliably mapped to country codes at parse time. We use US as the default target
+  // market and note the intended locations in the ad set name for manual refinement.
+  targeting.geo_locations = { countries: ["US"] };
   if (campaign.locations.length > 0) {
-    targeting.geo_locations = {
-      countries: campaign.locations.slice(0, 10).map((l) => l.trim().toUpperCase().slice(0, 2)),
-    };
-  } else {
-    targeting.geo_locations = { countries: ["US"] };
+    // Surface parsed locations in name so account managers can add city-level targeting manually
+    logger.info({ locations: campaign.locations }, "Meta Ads: parsed locations require manual geo setup in platform");
   }
 
   if (campaign.interests.length > 0) {
@@ -397,7 +399,7 @@ async function pushToMetaAds(
   const adSetParams = new URLSearchParams({
     name: `${campaignName} — Ad Set`,
     campaign_id: campaignId,
-    daily_budget: (campaign.dailyBudgetCents * 100).toString(), // Meta expects cents in local currency * 100 = micros?
+    daily_budget: campaign.dailyBudgetCents.toString(), // Meta expects smallest currency unit (cents for USD)
     billing_event: "IMPRESSIONS",
     optimization_goal: "REACH",
     status: "PAUSED",
@@ -505,6 +507,7 @@ router.post("/tasks/:id/push-ads", async (req, res): Promise<void> => {
     let campaignId: string | null = null;
     let campaignName: string | null = null;
     let pushWarnings: string[] = [];
+    let pushStatus: "pushed" | "partial" = "pushed";
 
     if (platform === "google_ads") {
       if (!property.googleAdsCustomerId || !property.googleAdsRefreshToken) {
@@ -555,11 +558,15 @@ router.post("/tasks/:id/push-ads", async (req, res): Promise<void> => {
       campaignId = result.campaignId;
       campaignName = result.campaignName;
       pushWarnings = result.warnings ?? [];
+      // If warnings are present it means the ad set was not created — mark as partial
+      if (pushWarnings.length > 0) {
+        pushStatus = "partial";
+      }
     }
 
     await db
       .update(tasksTable)
-      .set({ adPushStatus: "pushed", adCampaignId: campaignId, adPlatform: platform, adPushedAt: now, updatedAt: now })
+      .set({ adPushStatus: pushStatus, adCampaignId: campaignId, adPlatform: platform, adPushedAt: now, updatedAt: now })
       .where(eq(tasksTable.id, task.id));
 
     logger.info({ taskId: task.id, platform, campaignId }, "Task pushed to ad platform");
