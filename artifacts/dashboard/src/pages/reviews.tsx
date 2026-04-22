@@ -1,17 +1,20 @@
-import { useListReviews, useGetTask } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useListReviews } from "@workspace/api-client-react";
+import { type z } from "zod/v4";
+import { ListReviewsResponseItem } from "@workspace/api-zod";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { Clock, CheckCircle2, RefreshCw, XCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function Reviews() {
-  const { data: allReviews, isLoading: loadingPending } = useListReviews();
-  const { data: completedReviews, isLoading: loadingCompleted } = useListReviews();
+type ReviewItem = z.infer<typeof ListReviewsResponseItem>;
 
-  const pendingReviews = allReviews?.filter(r => !r.decision) || [];
-  const allProcessedReviews = completedReviews?.filter(r => !!r.decision) || [];
+export default function Reviews() {
+  const { data: allReviews, isLoading } = useListReviews();
+
+  const pendingReviews = allReviews?.filter((r) => !r.decision) ?? [];
+  const processedReviews = allReviews?.filter((r) => !!r.decision) ?? [];
 
   return (
     <div className="space-y-8">
@@ -24,7 +27,7 @@ export default function Reviews() {
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="pending">
             Pending Review
-            {pendingReviews && pendingReviews.length > 0 && (
+            {pendingReviews.length > 0 && (
               <Badge variant="secondary" className="ml-2 bg-primary text-primary-foreground">
                 {pendingReviews.length}
               </Badge>
@@ -32,38 +35,38 @@ export default function Reviews() {
           </TabsTrigger>
           <TabsTrigger value="processed">Processed</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="pending" className="mt-6 space-y-4">
-          {loadingPending ? (
+          {isLoading ? (
             <div className="space-y-4 animate-pulse">
-              {[1, 2, 3].map(i => <div key={i} className="h-24 bg-muted rounded-xl"></div>)}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-24 bg-muted rounded-xl" />
+              ))}
             </div>
-          ) : pendingReviews?.length === 0 ? (
+          ) : pendingReviews.length === 0 ? (
             <div className="text-center py-16 bg-muted/30 rounded-xl border border-dashed">
               <CheckCircle2 className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-medium text-foreground">All caught up</h3>
               <p className="text-sm text-muted-foreground mt-1">There are no tasks waiting for approval.</p>
             </div>
           ) : (
-            pendingReviews?.map((review) => (
-              <ReviewCard key={review.id} review={review} />
-            ))
+            pendingReviews.map((review) => <ReviewCard key={review.id} review={review} />)
           )}
         </TabsContent>
-        
+
         <TabsContent value="processed" className="mt-6 space-y-4">
-           {loadingCompleted ? (
+          {isLoading ? (
             <div className="space-y-4 animate-pulse">
-              {[1, 2, 3].map(i => <div key={i} className="h-24 bg-muted rounded-xl"></div>)}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-24 bg-muted rounded-xl" />
+              ))}
             </div>
-          ) : allProcessedReviews.length === 0 ? (
-             <div className="text-center py-12 text-muted-foreground border border-dashed rounded-xl">
-              No processed reviews found.
+          ) : processedReviews.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground border border-dashed rounded-xl">
+              No processed reviews yet.
             </div>
           ) : (
-            allProcessedReviews.map((review) => (
-              <ReviewCard key={review.id} review={review} />
-            ))
+            processedReviews.map((review) => <ReviewCard key={review.id} review={review} />)
           )}
         </TabsContent>
       </Tabs>
@@ -71,49 +74,60 @@ export default function Reviews() {
   );
 }
 
-function ReviewCard({ review }: { review: any }) {
-  // We need to fetch the task to get details for the review card
-  const { data: task } = useGetTask(review.taskId, {
-    query: { enabled: !!review.taskId }
-  });
-
+function ReviewCard({ review }: { review: ReviewItem }) {
   return (
     <Link href={`/tasks/${review.taskId}`}>
       <Card className="hover:border-primary/50 transition-colors cursor-pointer">
         <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          {task ? (
-            <>
-              <div 
-                className="w-10 h-10 rounded-md flex-shrink-0 flex items-center justify-center text-white"
-                style={{ backgroundColor: task.agentColor }}
-              >
-                {task.agentIcon}
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium text-muted-foreground">{task.propertyName}</span>
-                  <span className="text-muted-foreground/50 text-xs">&bull;</span>
-                  <span className="text-sm text-muted-foreground">{format(new Date(review.createdAt), "MMM d, h:mm a")}</span>
-                </div>
-                <h3 className="font-semibold text-lg truncate">{task.title}</h3>
-                <p className="text-sm text-muted-foreground truncate mt-1">
-                  Generated by {task.agentName}
-                </p>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-muted rounded w-1/4"></div>
-              <div className="h-6 bg-muted rounded w-1/2"></div>
+          {review.agentColor && (
+            <div
+              className="w-10 h-10 rounded-md flex-shrink-0 flex items-center justify-center text-white text-base"
+              style={{ backgroundColor: review.agentColor }}
+            >
+              {review.agentIcon ?? "🤖"}
             </div>
           )}
 
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              {review.propertyName && (
+                <span className="text-sm font-medium text-muted-foreground">{review.propertyName}</span>
+              )}
+              <span className="text-muted-foreground/50 text-xs">&bull;</span>
+              <span className="text-sm text-muted-foreground">
+                {format(new Date(review.createdAt), "MMM d, h:mm a")}
+              </span>
+            </div>
+            <h3 className="font-semibold text-lg truncate">{review.taskTitle ?? `Review #${review.id}`}</h3>
+            <p className="text-sm text-muted-foreground truncate mt-1">
+              Generated by {review.agentName ?? "AI Agent"}
+              {review.managerScore != null && (
+                <span className="ml-2 text-amber-600 font-medium">· Casey scored {review.managerScore}/10</span>
+              )}
+            </p>
+          </div>
+
           <div className="flex items-center gap-4 sm:ml-auto">
-            {!review.decision && <Badge variant="secondary" className="gap-1.5"><Clock className="w-3 h-3" /> Needs Review</Badge>}
-            {review.decision === 'approved' && <Badge className="gap-1.5 bg-green-600"><CheckCircle2 className="w-3 h-3" /> Approved</Badge>}
-            {review.decision === 'revision_requested' && <Badge variant="outline" className="gap-1.5 border-primary text-primary"><RefreshCw className="w-3 h-3" /> Revision</Badge>}
-            {review.decision === 'rejected' && <Badge variant="destructive" className="gap-1.5"><XCircle className="w-3 h-3" /> Rejected</Badge>}
+            {!review.decision && (
+              <Badge variant="secondary" className="gap-1.5">
+                <Clock className="w-3 h-3" /> Needs Review
+              </Badge>
+            )}
+            {review.decision === "approved" && (
+              <Badge className="gap-1.5 bg-green-600">
+                <CheckCircle2 className="w-3 h-3" /> Approved
+              </Badge>
+            )}
+            {review.decision === "revision_requested" && (
+              <Badge variant="outline" className="gap-1.5 border-primary text-primary">
+                <RefreshCw className="w-3 h-3" /> Revision
+              </Badge>
+            )}
+            {review.decision === "rejected" && (
+              <Badge variant="destructive" className="gap-1.5">
+                <XCircle className="w-3 h-3" /> Rejected
+              </Badge>
+            )}
           </div>
         </CardContent>
       </Card>

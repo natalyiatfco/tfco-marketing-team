@@ -5,8 +5,8 @@ import { Link } from "wouter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { format } from "date-fns";
-import { CheckCircle2, Clock, Loader2, AlertCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { CheckCircle2, Clock, Loader2, AlertCircle, CalendarClock } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -35,6 +35,24 @@ export default function Tasks() {
           </div>
         </Link>
       </div>
+
+      <Tabs defaultValue="manual" className="w-full">
+        <TabsList>
+          <TabsTrigger value="manual">Manual Tasks</TabsTrigger>
+          <TabsTrigger value="scheduled">Scheduled Tasks</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="scheduled" className="mt-6">
+          <div className="text-center py-20 border border-dashed rounded-xl bg-muted/20">
+            <CalendarClock className="w-14 h-14 text-muted-foreground mx-auto mb-4 opacity-40" />
+            <h3 className="text-lg font-semibold">Scheduled Tasks — Coming Soon</h3>
+            <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
+              Set recurring tasks for your AI agents — weekly blog posts, monthly SEO audits, daily social content — and they'll run automatically on schedule.
+            </p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="manual" className="mt-6">
 
       <div className="flex flex-col sm:flex-row gap-4 bg-card p-4 rounded-xl border border-border">
         <div className="flex-1">
@@ -128,6 +146,9 @@ export default function Tasks() {
           )}
         </div>
       )}
+
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
