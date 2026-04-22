@@ -525,9 +525,11 @@ export const PushTaskToAdsBody = zod.object({
 export const PushTaskToAdsResponse = zod.object({
   taskId: zod.number(),
   platform: zod.string(),
+  pushStatus: zod.enum(["pushed", "partial", "failed"]),
   campaignId: zod.string().nullish(),
   campaignName: zod.string().nullish(),
   pushedAt: zod.string(),
+  warnings: zod.array(zod.string()),
   message: zod.string(),
 });
 

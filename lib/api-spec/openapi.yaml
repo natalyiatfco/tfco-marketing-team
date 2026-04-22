@@ -1002,16 +1002,25 @@ components:
           type: integer
         platform:
           type: string
+        pushStatus:
+          type: string
+          enum: [pushed, partial, failed]
         campaignId:
           type: ["string", "null"]
         campaignName:
           type: ["string", "null"]
         pushedAt:
           type: string
+        warnings:
+          type: array
+          items:
+            type: string
         message:
           type: string
       required:
         - taskId
         - platform
+        - pushStatus
         - pushedAt
+        - warnings
         - message

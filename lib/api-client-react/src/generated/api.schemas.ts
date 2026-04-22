@@ -367,14 +367,25 @@ export interface PushAdsBody {
   overrideCampaignName?: string;
 }
 
+export type PushAdsResultPushStatus =
+  (typeof PushAdsResultPushStatus)[keyof typeof PushAdsResultPushStatus];
+
+export const PushAdsResultPushStatus = {
+  pushed: "pushed",
+  partial: "partial",
+  failed: "failed",
+} as const;
+
 export interface PushAdsResult {
   taskId: number;
   platform: string;
+  pushStatus: PushAdsResultPushStatus;
   /** @nullable */
   campaignId?: string | null;
   /** @nullable */
   campaignName?: string | null;
   pushedAt: string;
+  warnings: string[];
   message: string;
 }
 

@@ -634,6 +634,7 @@ router.post("/tasks/:id/push-ads", async (req, res): Promise<void> => {
     res.json({
       taskId: task.id,
       platform,
+      pushStatus,
       campaignId,
       campaignName,
       pushedAt: now.toISOString(),

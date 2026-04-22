@@ -201,10 +201,21 @@ export default function TaskDetail() {
       data: { platform: effectiveAdPlatform }
     }, {
       onSuccess: (result) => {
+        const platformLabel = effectiveAdPlatform === "google_ads" ? "Google Ads" : "Meta Ads";
         toast({
-          title: `Campaign pushed to ${effectiveAdPlatform === "google_ads" ? "Google Ads" : "Meta Ads"}`,
-          description: `Campaign ID: ${result.campaignId} — status: PAUSED (review before enabling)`,
+          title: result.pushStatus === "partial"
+            ? `Campaign partially pushed to ${platformLabel}`
+            : `Campaign pushed to ${platformLabel}`,
+          description: result.campaignId
+            ? `Campaign ID: ${result.campaignId} — status: PAUSED (review before enabling)`
+            : "Campaign created as PAUSED draft — review before enabling.",
+          variant: result.pushStatus === "partial" ? "destructive" : "default",
         });
+        if (result.warnings && result.warnings.length > 0) {
+          result.warnings.forEach((w) => {
+            toast({ title: "Ad Push Warning", description: w, variant: "destructive" });
+          });
+        }
         queryClient.invalidateQueries({ queryKey: getGetTaskQueryKey(id) });
         queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
       },
