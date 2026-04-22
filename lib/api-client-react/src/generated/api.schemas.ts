@@ -334,6 +334,32 @@ export interface DashboardSummary {
   tasksByProperty: PropertyTaskCount[];
 }
 
+export interface ReportSummary {
+  id: number;
+  title?: string | null;
+  agentId: number;
+  agentName: string;
+  agentIcon?: string | null;
+  agentColor?: string | null;
+  propertyId: number;
+  propertyName: string;
+  outputSnippet?: string | null;
+  createdAt?: string | null;
+}
+
+export interface ReportDetail {
+  id: number;
+  title?: string | null;
+  agentId: number;
+  agentName: string;
+  agentIcon?: string | null;
+  agentColor?: string | null;
+  propertyId: number;
+  propertyName: string;
+  output?: string | null;
+  createdAt?: string | null;
+}
+
 export interface ActivityItem {
   taskId: number;
   taskTitle: string;
@@ -622,6 +648,19 @@ export const GetPropertyAnalyticsDataDateRange = {
   "90days": "90days",
 } as const;
 
+export type DownloadPropertyAnalyticsPdfParams = {
+  dateRange?: DownloadPropertyAnalyticsPdfDateRange;
+};
+
+export type DownloadPropertyAnalyticsPdfDateRange =
+  (typeof DownloadPropertyAnalyticsPdfDateRange)[keyof typeof DownloadPropertyAnalyticsPdfDateRange];
+
+export const DownloadPropertyAnalyticsPdfDateRange = {
+  "7days": "7days",
+  "30days": "30days",
+  "90days": "90days",
+} as const;
+
 export type DownloadPropertyAnalyticsCsvParams = {
   dateRange?: DownloadPropertyAnalyticsCsvDateRange;
 };
@@ -634,6 +673,10 @@ export const DownloadPropertyAnalyticsCsvDateRange = {
   "30days": "30days",
   "90days": "90days",
 } as const;
+
+export type ListReportsParams = {
+  propertyId?: number;
+};
 
 export type ListSchedulesParams = {
   propertyId?: number;

@@ -640,6 +640,21 @@ export const GetPropertyAnalyticsDataResponse = zod.object({
 });
 
 /**
+ * @summary Download analytics data as PDF for a property
+ */
+export const DownloadPropertyAnalyticsPdfParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const downloadPropertyAnalyticsPdfQueryDateRangeDefault = `30days`;
+
+export const DownloadPropertyAnalyticsPdfQueryParams = zod.object({
+  dateRange: zod
+    .enum(["7days", "30days", "90days"])
+    .default(downloadPropertyAnalyticsPdfQueryDateRangeDefault),
+});
+
+/**
  * @summary Download analytics data as CSV for a property
  */
 export const DownloadPropertyAnalyticsCsvParams = zod.object({
@@ -652,6 +667,54 @@ export const DownloadPropertyAnalyticsCsvQueryParams = zod.object({
   dateRange: zod
     .enum(["7days", "30days", "90days"])
     .default(downloadPropertyAnalyticsCsvQueryDateRangeDefault),
+});
+
+/**
+ * @summary List all generated reports (completed tasks with output)
+ */
+export const ListReportsQueryParams = zod.object({
+  propertyId: zod.coerce.number().optional(),
+});
+
+export const ListReportsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string().nullish(),
+  agentId: zod.number(),
+  agentName: zod.string(),
+  agentIcon: zod.string().nullish(),
+  agentColor: zod.string().nullish(),
+  propertyId: zod.number(),
+  propertyName: zod.string(),
+  outputSnippet: zod.string().nullish(),
+  createdAt: zod.string().nullish(),
+});
+export const ListReportsResponse = zod.array(ListReportsResponseItem);
+
+/**
+ * @summary Get a specific report with full output
+ */
+export const GetReportParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetReportResponse = zod.object({
+  id: zod.number(),
+  title: zod.string().nullish(),
+  agentId: zod.number(),
+  agentName: zod.string(),
+  agentIcon: zod.string().nullish(),
+  agentColor: zod.string().nullish(),
+  propertyId: zod.number(),
+  propertyName: zod.string(),
+  output: zod.string().nullish(),
+  createdAt: zod.string().nullish(),
+});
+
+/**
+ * @summary Download a report as PDF
+ */
+export const DownloadReportPdfParams = zod.object({
+  id: zod.coerce.number(),
 });
 
 /**

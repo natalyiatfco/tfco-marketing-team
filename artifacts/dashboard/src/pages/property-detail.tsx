@@ -662,22 +662,35 @@ export default function PropertyDetail() {
           <CardHeader>
             <CardTitle>Analytics Export</CardTitle>
             <CardDescription>
-              Download raw performance data from your connected ad platforms and CRM as a spreadsheet-ready CSV.
+              Download raw performance data from your connected ad platforms and CRM as CSV or formatted PDF.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-3">
-              {(["7days", "30days", "90days"] as const).map((range) => (
-                <a
-                  key={range}
-                  href={`/api/properties/${property.id}/analytics-data.csv?dateRange=${range}`}
-                  download
-                  className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Last {range === "7days" ? "7 Days" : range === "30days" ? "30 Days" : "90 Days"}
-                </a>
-              ))}
+            <div className="space-y-2">
+              {(["7days", "30days", "90days"] as const).map((range) => {
+                const label = range === "7days" ? "Last 7 Days" : range === "30days" ? "Last 30 Days" : "Last 90 Days";
+                return (
+                  <div key={range} className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground w-28">{label}</span>
+                    <a
+                      href={`/api/properties/${property.id}/analytics-data.csv?dateRange=${range}`}
+                      download
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      CSV
+                    </a>
+                    <a
+                      href={`/api/properties/${property.id}/analytics-data.pdf?dateRange=${range}`}
+                      download
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      PDF
+                    </a>
+                  </div>
+                );
+              })}
             </div>
             <p className="text-xs text-muted-foreground mt-3">
               Includes Google Ads, Meta Ads, HubSpot CRM, and email campaign data for all connected platforms.

@@ -28,6 +28,8 @@ tags:
     description: Recurring task scheduler
   - name: analytics
     description: Platform analytics data
+  - name: reports
+    description: Generated report outputs from AI agents
 
 paths:
   /healthz:
@@ -363,6 +365,35 @@ paths:
         "404":
           description: Property not found
 
+  /properties/{id}/analytics-data.pdf:
+    get:
+      operationId: downloadPropertyAnalyticsPdf
+      tags: [analytics]
+      summary: Download analytics data as PDF for a property
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: dateRange
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [7days, 30days, 90days]
+            default: 30days
+      responses:
+        "200":
+          description: PDF file with analytics report
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Property not found
+
   /properties/{id}/analytics-data.csv:
     get:
       operationId: downloadPropertyAnalyticsCsv
@@ -390,6 +421,71 @@ paths:
                 type: string
         "404":
           description: Property not found
+
+  # Reports
+  /reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      summary: List all generated reports (completed tasks with output)
+      parameters:
+        - name: propertyId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of report summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportSummary"
+
+  /reports/{id}:
+    get:
+      operationId: getReport
+      tags: [reports]
+      summary: Get a specific report with full output
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Report detail with full output
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportDetail"
+        "404":
+          description: Report not found
+
+  /reports/{id}/download.pdf:
+    get:
+      operationId: downloadReportPdf
+      tags: [reports]
+      summary: Download a report as PDF
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: PDF file of the report
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Report not found
 
   # Schedules
   /schedules:
@@ -1087,6 +1183,76 @@ components:
         - tasksByAgent
         - upcomingSchedules
         - tasksByProperty
+
+    ReportSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+          nullable: true
+        agentId:
+          type: integer
+        agentName:
+          type: string
+        agentIcon:
+          type: string
+          nullable: true
+        agentColor:
+          type: string
+          nullable: true
+        propertyId:
+          type: integer
+        propertyName:
+          type: string
+        outputSnippet:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          nullable: true
+      required:
+        - id
+        - agentId
+        - agentName
+        - propertyId
+        - propertyName
+
+    ReportDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+          nullable: true
+        agentId:
+          type: integer
+        agentName:
+          type: string
+        agentIcon:
+          type: string
+          nullable: true
+        agentColor:
+          type: string
+          nullable: true
+        propertyId:
+          type: integer
+        propertyName:
+          type: string
+        output:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          nullable: true
+      required:
+        - id
+        - agentId
+        - agentName
+        - propertyId
+        - propertyName
 
     PropertyTaskCount:
       type: object

@@ -9,6 +9,7 @@ import publishRouter from "./publish";
 import pushAdsRouter from "./push-ads";
 import schedulesRouter, { startScheduler } from "./schedules";
 import analyticsRouter from "./analytics";
+import reportsRouter from "./reports";
 
 const router: IRouter = Router();
 
@@ -22,6 +23,7 @@ router.use(publishRouter);
 router.use(pushAdsRouter);
 router.use(schedulesRouter);
 router.use(analyticsRouter);
+router.use(reportsRouter);
 
 startScheduler();
 

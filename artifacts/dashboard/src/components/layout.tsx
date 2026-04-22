@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Users, CheckSquare, Briefcase, Menu, CalendarClock } from "lucide-react";
+import { LayoutDashboard, Users, CheckSquare, Briefcase, Menu, CalendarClock, FileText } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/agents", label: "Agents Roster", icon: Users },
   { href: "/properties", label: "Properties", icon: Briefcase },
   { href: "/schedules", label: "Schedules", icon: CalendarClock },
+  { href: "/reports", label: "Reports", icon: FileText },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
