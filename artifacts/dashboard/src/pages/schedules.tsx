@@ -404,8 +404,14 @@ function ScheduleHistoryDrawer({
             Task History
           </SheetTitle>
           {schedule && (
-            <SheetDescription>
-              Recent tasks spawned by <span className="font-medium text-foreground">{schedule.name}</span>
+            <SheetDescription className="flex items-center justify-between gap-2">
+              <span>Recent tasks spawned by <span className="font-medium text-foreground">{schedule.name}</span></span>
+              <Link href={`/tasks?scheduleId=${schedule.id}`} onClick={onClose}>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 shrink-0">
+                  <ExternalLink className="h-3 w-3" />
+                  View all
+                </Button>
+              </Link>
             </SheetDescription>
           )}
         </SheetHeader>

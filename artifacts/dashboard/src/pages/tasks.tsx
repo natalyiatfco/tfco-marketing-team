@@ -1,26 +1,43 @@
-import { useListTasks, useListAgents, useListProperties } from "@workspace/api-client-react";
+import { useListTasks, useListAgents, useListProperties, useListSchedules } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearch } from "wouter";
 import { format } from "date-fns";
 import { CheckCircle2, Clock, Loader2, AlertCircle, CalendarClock, RefreshCw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+function parseScheduleId(search: string): string {
+  const raw = new URLSearchParams(search).get("scheduleId");
+  if (!raw) return "all";
+  const n = parseInt(raw, 10);
+  return isNaN(n) || n <= 0 ? "all" : String(n);
+}
+
 export default function Tasks() {
+  const search = useSearch();
+
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [agentFilter, setAgentFilter] = useState<string>("all");
   const [propertyFilter, setPropertyFilter] = useState<string>("all");
+  const [scheduleFilter, setScheduleFilter] = useState<string>(() => parseScheduleId(search));
+
+  useEffect(() => {
+    setScheduleFilter(parseScheduleId(search));
+  }, [search]);
 
   const { data: tasks, isLoading: isLoadingTasks } = useListTasks({
     status: statusFilter !== "all" ? statusFilter : undefined,
     agentId: agentFilter !== "all" ? Number(agentFilter) : undefined,
     propertyId: propertyFilter !== "all" ? Number(propertyFilter) : undefined,
+    scheduleId: scheduleFilter !== "all" ? Number(scheduleFilter) : undefined,
   });
 
   const { data: agents } = useListAgents();
   const { data: properties } = useListProperties();
+  const { data: schedules } = useListSchedules();
 
   return (
     <div className="space-y-8">
@@ -94,6 +111,20 @@ export default function Tasks() {
               <SelectItem value="all">All Properties</SelectItem>
               {properties?.map(p => (
                 <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1">
+          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Scheduled by</label>
+          <Select value={scheduleFilter} onValueChange={setScheduleFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Schedules" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Schedules</SelectItem>
+              {(schedules as { id: number; name: string }[] | undefined)?.map(s => (
+                <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
