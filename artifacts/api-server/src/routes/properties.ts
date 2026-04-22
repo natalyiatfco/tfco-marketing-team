@@ -15,6 +15,7 @@ const CREDENTIAL_FIELDS = [
   "squarespaceCollectionId",
   "googleAdsRefreshToken",
   "metaAdsAccessToken",
+  "hubspotApiKey",
 ] as const;
 
 type DbInsert = typeof propertiesTable.$inferInsert;
@@ -66,6 +67,7 @@ function toSafeProperty(property: Property) {
     squarespaceCollectionId,
     googleAdsRefreshToken,
     metaAdsAccessToken,
+    hubspotApiKey,
     ...safe
   } = property;
   return {
@@ -74,6 +76,7 @@ function toSafeProperty(property: Property) {
     squarespaceConfigured: !!(squarespaceApiKey && squarespaceCollectionId),
     googleAdsConfigured: !!(safe.googleAdsCustomerId && googleAdsRefreshToken),
     metaAdsConfigured: !!(safe.metaAdsAccountId && metaAdsAccessToken),
+    hubspotConfigured: !!hubspotApiKey,
   };
 }
 

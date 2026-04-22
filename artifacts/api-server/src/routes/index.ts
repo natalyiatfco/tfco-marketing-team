@@ -7,6 +7,8 @@ import reviewsRouter from "./reviews";
 import dashboardRouter from "./dashboard";
 import publishRouter from "./publish";
 import pushAdsRouter from "./push-ads";
+import schedulesRouter, { startScheduler } from "./schedules";
+import analyticsRouter from "./analytics";
 
 const router: IRouter = Router();
 
@@ -18,5 +20,9 @@ router.use(reviewsRouter);
 router.use(dashboardRouter);
 router.use(publishRouter);
 router.use(pushAdsRouter);
+router.use(schedulesRouter);
+router.use(analyticsRouter);
+
+startScheduler();
 
 export default router;

@@ -73,6 +73,13 @@ export interface Property {
    * @nullable
    */
   resyUrl?: string | null;
+  /**
+   * HubSpot portal/account ID
+   * @nullable
+   */
+  hubspotPortalId?: string | null;
+  /** True when a HubSpot API key is stored */
+  hubspotConfigured: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -112,6 +119,10 @@ export interface CreatePropertyBody {
   logoUrl?: string;
   /** Resy reservation page URL */
   resyUrl?: string;
+  /** HubSpot portal/account ID */
+  hubspotPortalId?: string;
+  /** HubSpot private API key — write-only, never returned */
+  hubspotApiKey?: string;
 }
 
 export interface UpdatePropertyBody {
@@ -147,6 +158,10 @@ export interface UpdatePropertyBody {
   logoUrl?: string;
   /** Resy reservation page URL */
   resyUrl?: string;
+  /** HubSpot portal/account ID */
+  hubspotPortalId?: string;
+  /** HubSpot private API key — write-only, leave blank to keep existing value */
+  hubspotApiKey?: string;
 }
 
 export interface Agent {
@@ -287,6 +302,18 @@ export interface AgentTaskCount {
   count: number;
 }
 
+export interface UpcomingSchedule {
+  id: number;
+  name: string;
+  agentName: string;
+  agentIcon: string;
+  agentColor: string;
+  propertyName: string;
+  frequency: string;
+  /** @nullable */
+  nextRunAt?: string | null;
+}
+
 export interface DashboardSummary {
   totalTasks: number;
   pendingApproval: number;
@@ -295,6 +322,7 @@ export interface DashboardSummary {
   totalProperties: number;
   tasksThisWeek: number;
   tasksByAgent: AgentTaskCount[];
+  upcomingSchedules: UpcomingSchedule[];
 }
 
 export interface ActivityItem {
@@ -389,10 +417,205 @@ export interface PushAdsResult {
   message: string;
 }
 
+export type ScheduleFrequency =
+  (typeof ScheduleFrequency)[keyof typeof ScheduleFrequency];
+
+export const ScheduleFrequency = {
+  daily: "daily",
+  weekly: "weekly",
+  monthly: "monthly",
+} as const;
+
+export type ScheduleStatus =
+  (typeof ScheduleStatus)[keyof typeof ScheduleStatus];
+
+export const ScheduleStatus = {
+  active: "active",
+  paused: "paused",
+} as const;
+
+export interface Schedule {
+  id: number;
+  name: string;
+  agentId: number;
+  agentName: string;
+  agentIcon: string;
+  agentColor: string;
+  propertyId: number;
+  propertyName: string;
+  taskType: string;
+  /** @nullable */
+  inputPrompt?: string | null;
+  frequency: ScheduleFrequency;
+  /**
+   * 0=Sunday, 1=Monday ... 6=Saturday (weekly only)
+   * @nullable
+   */
+  dayOfWeek?: number | null;
+  /**
+   * 1-31 (monthly only)
+   * @nullable
+   */
+  dayOfMonth?: number | null;
+  /** Hour of day to run (0-23) */
+  hour: number;
+  timezone: string;
+  status: ScheduleStatus;
+  /** @nullable */
+  nextRunAt?: string | null;
+  /** @nullable */
+  lastRunAt?: string | null;
+  /** @nullable */
+  lastTaskId?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateScheduleBodyFrequency =
+  (typeof CreateScheduleBodyFrequency)[keyof typeof CreateScheduleBodyFrequency];
+
+export const CreateScheduleBodyFrequency = {
+  daily: "daily",
+  weekly: "weekly",
+  monthly: "monthly",
+} as const;
+
+export interface CreateScheduleBody {
+  name: string;
+  agentId: number;
+  propertyId: number;
+  taskType: string;
+  inputPrompt?: string;
+  frequency: CreateScheduleBodyFrequency;
+  /** 0=Sunday ... 6=Saturday (required when frequency=weekly) */
+  dayOfWeek?: number;
+  /** 1-31 (required when frequency=monthly) */
+  dayOfMonth?: number;
+  /** Hour of day (0-23, defaults to 9) */
+  hour?: number;
+  /** IANA timezone (defaults to America/New_York) */
+  timezone?: string;
+}
+
+export type UpdateScheduleBodyFrequency =
+  (typeof UpdateScheduleBodyFrequency)[keyof typeof UpdateScheduleBodyFrequency];
+
+export const UpdateScheduleBodyFrequency = {
+  daily: "daily",
+  weekly: "weekly",
+  monthly: "monthly",
+} as const;
+
+export type UpdateScheduleBodyStatus =
+  (typeof UpdateScheduleBodyStatus)[keyof typeof UpdateScheduleBodyStatus];
+
+export const UpdateScheduleBodyStatus = {
+  active: "active",
+  paused: "paused",
+} as const;
+
+export interface UpdateScheduleBody {
+  name?: string;
+  taskType?: string;
+  inputPrompt?: string;
+  frequency?: UpdateScheduleBodyFrequency;
+  dayOfWeek?: number;
+  dayOfMonth?: number;
+  hour?: number;
+  timezone?: string;
+  status?: UpdateScheduleBodyStatus;
+}
+
+export type AnalyticsDataProperty = {
+  id: number;
+  name: string;
+};
+
+export type AnalyticsDataDateRange = {
+  from: string;
+  to: string;
+  label: string;
+};
+
+export type AnalyticsDataGoogleAdsCampaignsItem = { [key: string]: unknown };
+
+export type AnalyticsDataGoogleAdsTotals = {
+  impressions: number;
+  clicks: number;
+  spend: number;
+  ctr: number;
+};
+
+export type AnalyticsDataGoogleAds = {
+  available: boolean;
+  campaigns?: AnalyticsDataGoogleAdsCampaignsItem[];
+  totals?: AnalyticsDataGoogleAdsTotals;
+};
+
+export type AnalyticsDataMetaAdsCampaignsItem = { [key: string]: unknown };
+
+export type AnalyticsDataMetaAdsTotals = {
+  impressions: number;
+  clicks: number;
+  spend: number;
+  ctr: number;
+};
+
+export type AnalyticsDataMetaAds = {
+  available: boolean;
+  campaigns?: AnalyticsDataMetaAdsCampaignsItem[];
+  totals?: AnalyticsDataMetaAdsTotals;
+};
+
+export type AnalyticsDataHubspotContacts = {
+  total: number;
+  newInPeriod: number;
+};
+
+export type AnalyticsDataHubspotDealsByStage = { [key: string]: unknown };
+
+export type AnalyticsDataHubspotDeals = {
+  total: number;
+  totalValue: number;
+  byStage: AnalyticsDataHubspotDealsByStage;
+};
+
+export type AnalyticsDataHubspot = {
+  available: boolean;
+  contacts?: AnalyticsDataHubspotContacts;
+  deals?: AnalyticsDataHubspotDeals;
+};
+
+export interface AnalyticsData {
+  property: AnalyticsDataProperty;
+  dateRange: AnalyticsDataDateRange;
+  googleAds: AnalyticsDataGoogleAds;
+  metaAds: AnalyticsDataMetaAds;
+  hubspot: AnalyticsDataHubspot;
+}
+
 export type ListTasksParams = {
   status?: string;
   propertyId?: number;
   agentId?: number;
+};
+
+export type GetPropertyAnalyticsDataParams = {
+  dateRange?: GetPropertyAnalyticsDataDateRange;
+};
+
+export type GetPropertyAnalyticsDataDateRange =
+  (typeof GetPropertyAnalyticsDataDateRange)[keyof typeof GetPropertyAnalyticsDataDateRange];
+
+export const GetPropertyAnalyticsDataDateRange = {
+  "7days": "7days",
+  "30days": "30days",
+  "90days": "90days",
+} as const;
+
+export type ListSchedulesParams = {
+  propertyId?: number;
+  status?: string;
 };
 
 export type ListReviewsParams = {

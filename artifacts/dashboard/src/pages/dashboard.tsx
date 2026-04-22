@@ -1,8 +1,8 @@
 import { useGetDashboardSummary, useGetRecentActivity } from "@workspace/api-client-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
-import { Activity, CheckCircle2, Clock, XCircle, LayoutGrid, Users, Briefcase } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Activity, CheckCircle2, Clock, Briefcase, CalendarClock } from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
 export default function Dashboard() {
@@ -84,6 +84,51 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {summary.upcomingSchedules && summary.upcomingSchedules.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-primary" />
+                Upcoming Scheduled Tasks
+              </CardTitle>
+              <CardDescription>Next auto-dispatches from active schedules</CardDescription>
+            </div>
+            <Link href="/schedules">
+              <span className="text-xs text-primary hover:underline cursor-pointer">Manage schedules →</span>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {summary.upcomingSchedules.map((s) => (
+                <div key={s.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-7 h-7 rounded flex items-center justify-center text-white text-xs"
+                      style={{ backgroundColor: s.agentColor ?? "#6b7280" }}
+                    >
+                      {s.agentIcon}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium leading-none">{s.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{s.agentName} · {s.propertyName}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant="outline" className="text-xs capitalize mb-1">{s.frequency}</Badge>
+                    {s.nextRunAt && (
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(s.nextRunAt), "MMM d, h:mm a")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="col-span-1">

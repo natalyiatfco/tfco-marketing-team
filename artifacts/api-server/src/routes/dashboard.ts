@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, sql, count, gte, isNull } from "drizzle-orm";
-import { db, tasksTable, agentsTable, propertiesTable, reviewsTable } from "@workspace/db";
+import { db, tasksTable, agentsTable, propertiesTable, reviewsTable, schedulesTable } from "@workspace/db";
 import {
   GetDashboardSummaryResponse,
   GetRecentActivityQueryParams,
@@ -48,6 +48,24 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     .groupBy(agentsTable.id, agentsTable.name, agentsTable.color, agentsTable.icon)
     .orderBy(sql`count(${tasksTable.id}) DESC`);
 
+  const upcomingSchedulesRaw = await db
+    .select({
+      id: schedulesTable.id,
+      name: schedulesTable.name,
+      agentName: agentsTable.name,
+      agentIcon: agentsTable.icon,
+      agentColor: agentsTable.color,
+      propertyName: propertiesTable.name,
+      frequency: schedulesTable.frequency,
+      nextRunAt: schedulesTable.nextRunAt,
+    })
+    .from(schedulesTable)
+    .innerJoin(agentsTable, eq(schedulesTable.agentId, agentsTable.id))
+    .innerJoin(propertiesTable, eq(schedulesTable.propertyId, propertiesTable.id))
+    .where(eq(schedulesTable.status, "active"))
+    .orderBy(schedulesTable.nextRunAt)
+    .limit(5);
+
   const summary = {
     totalTasks: totalTasksResult?.count ?? 0,
     pendingApproval: pendingApprovalReviews[0]?.count ?? 0,
@@ -61,6 +79,16 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       agentColor: a.agentColor,
       agentIcon: a.agentIcon,
       count: a.count,
+    })),
+    upcomingSchedules: upcomingSchedulesRaw.map((s) => ({
+      id: s.id,
+      name: s.name,
+      agentName: s.agentName,
+      agentIcon: s.agentIcon,
+      agentColor: s.agentColor,
+      propertyName: s.propertyName,
+      frequency: s.frequency,
+      nextRunAt: s.nextRunAt?.toISOString() ?? null,
     })),
   };
 

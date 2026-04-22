@@ -4,6 +4,7 @@ import { db, tasksTable, agentsTable, propertiesTable, reviewsTable } from "@wor
 import { CreateTaskBody, GetTaskParams, ListTasksQueryParams } from "@workspace/api-zod";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { logger } from "../lib/logger";
+import { fetchAnalyticsData, formatAnalyticsDataForPrompt } from "../lib/analytics-fetcher";
 
 const router: IRouter = Router();
 
@@ -150,12 +151,24 @@ router.post("/tasks", async (req, res): Promise<void> => {
 
   setImmediate(async () => {
     try {
+      let userPrompt = parsed.data.inputPrompt;
+
+      if (agent.role === "digital_marketing_analyst") {
+        try {
+          const analyticsData = await fetchAnalyticsData(property, "30days");
+          const analyticsText = formatAnalyticsDataForPrompt(analyticsData);
+          userPrompt = `${analyticsText}\n\n${parsed.data.inputPrompt}`;
+        } catch (analyticsErr) {
+          logger.warn({ analyticsErr, taskId: task.id }, "Analytics data fetch failed — proceeding without it");
+        }
+      }
+
       const response = await openai.chat.completions.create({
         model: "gpt-5.1",
         max_completion_tokens: 4096,
         messages: [
           { role: "system", content: `${agent.systemPrompt}\n\n${brandContext}` },
-          { role: "user", content: parsed.data.inputPrompt },
+          { role: "user", content: userPrompt },
         ],
       });
 

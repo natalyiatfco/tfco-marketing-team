@@ -73,6 +73,13 @@ export const ListPropertiesResponseItem = zod.object({
     .string()
     .nullish()
     .describe("Resy reservation page URL for this property"),
+  hubspotPortalId: zod
+    .string()
+    .nullish()
+    .describe("HubSpot portal\/account ID"),
+  hubspotConfigured: zod
+    .boolean()
+    .describe("True when a HubSpot API key is stored"),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -128,6 +135,14 @@ export const CreatePropertyBody = zod.object({
     .optional()
     .describe("Base64 data URL for the property logo"),
   resyUrl: zod.string().optional().describe("Resy reservation page URL"),
+  hubspotPortalId: zod
+    .string()
+    .optional()
+    .describe("HubSpot portal\/account ID"),
+  hubspotApiKey: zod
+    .string()
+    .optional()
+    .describe("HubSpot private API key — write-only, never returned"),
 });
 
 /**
@@ -192,6 +207,13 @@ export const GetPropertyResponse = zod.object({
     .string()
     .nullish()
     .describe("Resy reservation page URL for this property"),
+  hubspotPortalId: zod
+    .string()
+    .nullish()
+    .describe("HubSpot portal\/account ID"),
+  hubspotConfigured: zod
+    .boolean()
+    .describe("True when a HubSpot API key is stored"),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -244,6 +266,16 @@ export const UpdatePropertyBody = zod.object({
     .optional()
     .describe("Base64 data URL for the property logo"),
   resyUrl: zod.string().optional().describe("Resy reservation page URL"),
+  hubspotPortalId: zod
+    .string()
+    .optional()
+    .describe("HubSpot portal\/account ID"),
+  hubspotApiKey: zod
+    .string()
+    .optional()
+    .describe(
+      "HubSpot private API key — write-only, leave blank to keep existing value",
+    ),
 });
 
 export const UpdatePropertyResponse = zod.object({
@@ -301,6 +333,13 @@ export const UpdatePropertyResponse = zod.object({
     .string()
     .nullish()
     .describe("Resy reservation page URL for this property"),
+  hubspotPortalId: zod
+    .string()
+    .nullish()
+    .describe("HubSpot portal\/account ID"),
+  hubspotConfigured: zod
+    .boolean()
+    .describe("True when a HubSpot API key is stored"),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -534,6 +573,221 @@ export const PushTaskToAdsResponse = zod.object({
 });
 
 /**
+ * @summary Fetch live analytics data from all connected platforms for a property
+ */
+export const GetPropertyAnalyticsDataParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const getPropertyAnalyticsDataQueryDateRangeDefault = `30days`;
+
+export const GetPropertyAnalyticsDataQueryParams = zod.object({
+  dateRange: zod
+    .enum(["7days", "30days", "90days"])
+    .default(getPropertyAnalyticsDataQueryDateRangeDefault),
+});
+
+export const GetPropertyAnalyticsDataResponse = zod.object({
+  property: zod.object({
+    id: zod.number(),
+    name: zod.string(),
+  }),
+  dateRange: zod.object({
+    from: zod.string(),
+    to: zod.string(),
+    label: zod.string(),
+  }),
+  googleAds: zod.object({
+    available: zod.boolean(),
+    campaigns: zod.array(zod.object({}).passthrough()).optional(),
+    totals: zod
+      .object({
+        impressions: zod.number(),
+        clicks: zod.number(),
+        spend: zod.number(),
+        ctr: zod.number(),
+      })
+      .optional(),
+  }),
+  metaAds: zod.object({
+    available: zod.boolean(),
+    campaigns: zod.array(zod.object({}).passthrough()).optional(),
+    totals: zod
+      .object({
+        impressions: zod.number(),
+        clicks: zod.number(),
+        spend: zod.number(),
+        ctr: zod.number(),
+      })
+      .optional(),
+  }),
+  hubspot: zod.object({
+    available: zod.boolean(),
+    contacts: zod
+      .object({
+        total: zod.number(),
+        newInPeriod: zod.number(),
+      })
+      .optional(),
+    deals: zod
+      .object({
+        total: zod.number(),
+        totalValue: zod.number(),
+        byStage: zod.object({}).passthrough(),
+      })
+      .optional(),
+  }),
+});
+
+/**
+ * @summary List all recurring task schedules
+ */
+export const ListSchedulesQueryParams = zod.object({
+  propertyId: zod.coerce.number().optional(),
+  status: zod.coerce.string().optional(),
+});
+
+export const ListSchedulesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  agentId: zod.number(),
+  agentName: zod.string(),
+  agentIcon: zod.string(),
+  agentColor: zod.string(),
+  propertyId: zod.number(),
+  propertyName: zod.string(),
+  taskType: zod.string(),
+  inputPrompt: zod.string().nullish(),
+  frequency: zod.enum(["daily", "weekly", "monthly"]),
+  dayOfWeek: zod
+    .number()
+    .nullish()
+    .describe("0=Sunday, 1=Monday ... 6=Saturday (weekly only)"),
+  dayOfMonth: zod.number().nullish().describe("1-31 (monthly only)"),
+  hour: zod.number().describe("Hour of day to run (0-23)"),
+  timezone: zod.string(),
+  status: zod.enum(["active", "paused"]),
+  nextRunAt: zod.string().nullish(),
+  lastRunAt: zod.string().nullish(),
+  lastTaskId: zod.number().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListSchedulesResponse = zod.array(ListSchedulesResponseItem);
+
+/**
+ * @summary Create a new recurring task schedule
+ */
+export const CreateScheduleBody = zod.object({
+  name: zod.string(),
+  agentId: zod.number(),
+  propertyId: zod.number(),
+  taskType: zod.string(),
+  inputPrompt: zod.string().optional(),
+  frequency: zod.enum(["daily", "weekly", "monthly"]),
+  dayOfWeek: zod
+    .number()
+    .optional()
+    .describe("0=Sunday ... 6=Saturday (required when frequency=weekly)"),
+  dayOfMonth: zod
+    .number()
+    .optional()
+    .describe("1-31 (required when frequency=monthly)"),
+  hour: zod.number().optional().describe("Hour of day (0-23, defaults to 9)"),
+  timezone: zod
+    .string()
+    .optional()
+    .describe("IANA timezone (defaults to America\/New_York)"),
+});
+
+/**
+ * @summary Get a schedule by ID
+ */
+export const GetScheduleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetScheduleResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  agentId: zod.number(),
+  agentName: zod.string(),
+  agentIcon: zod.string(),
+  agentColor: zod.string(),
+  propertyId: zod.number(),
+  propertyName: zod.string(),
+  taskType: zod.string(),
+  inputPrompt: zod.string().nullish(),
+  frequency: zod.enum(["daily", "weekly", "monthly"]),
+  dayOfWeek: zod
+    .number()
+    .nullish()
+    .describe("0=Sunday, 1=Monday ... 6=Saturday (weekly only)"),
+  dayOfMonth: zod.number().nullish().describe("1-31 (monthly only)"),
+  hour: zod.number().describe("Hour of day to run (0-23)"),
+  timezone: zod.string(),
+  status: zod.enum(["active", "paused"]),
+  nextRunAt: zod.string().nullish(),
+  lastRunAt: zod.string().nullish(),
+  lastTaskId: zod.number().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Update a schedule (edit or pause/resume)
+ */
+export const UpdateScheduleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateScheduleBody = zod.object({
+  name: zod.string().optional(),
+  taskType: zod.string().optional(),
+  inputPrompt: zod.string().optional(),
+  frequency: zod.enum(["daily", "weekly", "monthly"]).optional(),
+  dayOfWeek: zod.number().optional(),
+  dayOfMonth: zod.number().optional(),
+  hour: zod.number().optional(),
+  timezone: zod.string().optional(),
+  status: zod.enum(["active", "paused"]).optional(),
+});
+
+export const UpdateScheduleResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  agentId: zod.number(),
+  agentName: zod.string(),
+  agentIcon: zod.string(),
+  agentColor: zod.string(),
+  propertyId: zod.number(),
+  propertyName: zod.string(),
+  taskType: zod.string(),
+  inputPrompt: zod.string().nullish(),
+  frequency: zod.enum(["daily", "weekly", "monthly"]),
+  dayOfWeek: zod
+    .number()
+    .nullish()
+    .describe("0=Sunday, 1=Monday ... 6=Saturday (weekly only)"),
+  dayOfMonth: zod.number().nullish().describe("1-31 (monthly only)"),
+  hour: zod.number().describe("Hour of day to run (0-23)"),
+  timezone: zod.string(),
+  status: zod.enum(["active", "paused"]),
+  nextRunAt: zod.string().nullish(),
+  lastRunAt: zod.string().nullish(),
+  lastTaskId: zod.number().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a schedule
+ */
+export const DeleteScheduleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary List all reviews pending human approval
  */
 export const ListReviewsQueryParams = zod.object({
@@ -608,6 +862,18 @@ export const GetDashboardSummaryResponse = zod.object({
       agentColor: zod.string(),
       agentIcon: zod.string(),
       count: zod.number(),
+    }),
+  ),
+  upcomingSchedules: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      agentName: zod.string(),
+      agentIcon: zod.string(),
+      agentColor: zod.string(),
+      propertyName: zod.string(),
+      frequency: zod.string(),
+      nextRunAt: zod.string().nullish(),
     }),
   ),
 });

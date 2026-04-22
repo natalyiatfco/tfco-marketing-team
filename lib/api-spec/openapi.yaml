@@ -24,6 +24,10 @@ tags:
     description: CMS publishing (WordPress / Squarespace)
   - name: ads
     description: Ad platform publishing (Google Ads / Meta Ads)
+  - name: schedules
+    description: Recurring task scheduler
+  - name: analytics
+    description: Platform analytics data
 
 paths:
   /healthz:
@@ -330,6 +334,140 @@ paths:
         "422":
           description: Ad platform credentials not configured for this property
 
+  # Analytics data
+  /properties/{id}/analytics-data:
+    get:
+      operationId: getPropertyAnalyticsData
+      tags: [analytics]
+      summary: Fetch live analytics data from all connected platforms for a property
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: dateRange
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [7days, 30days, 90days]
+            default: 30days
+      responses:
+        "200":
+          description: Aggregated analytics data from all connected platforms
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsData"
+        "404":
+          description: Property not found
+
+  # Schedules
+  /schedules:
+    get:
+      operationId: listSchedules
+      tags: [schedules]
+      summary: List all recurring task schedules
+      parameters:
+        - name: propertyId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Schedule"
+    post:
+      operationId: createSchedule
+      tags: [schedules]
+      summary: Create a new recurring task schedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateScheduleBody"
+      responses:
+        "201":
+          description: Created schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Schedule"
+        "400":
+          description: Bad request
+
+  /schedules/{id}:
+    get:
+      operationId: getSchedule
+      tags: [schedules]
+      summary: Get a schedule by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Schedule"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateSchedule
+      tags: [schedules]
+      summary: Update a schedule (edit or pause/resume)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateScheduleBody"
+      responses:
+        "200":
+          description: Updated schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Schedule"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteSchedule
+      tags: [schedules]
+      summary: Delete a schedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
   # Reviews
   /reviews:
     get:
@@ -482,6 +620,12 @@ components:
         resyUrl:
           type: ["string", "null"]
           description: "Resy reservation page URL for this property"
+        hubspotPortalId:
+          type: ["string", "null"]
+          description: "HubSpot portal/account ID"
+        hubspotConfigured:
+          type: boolean
+          description: "True when a HubSpot API key is stored"
         createdAt:
           type: string
         updatedAt:
@@ -493,6 +637,7 @@ components:
         - squarespaceConfigured
         - googleAdsConfigured
         - metaAdsConfigured
+        - hubspotConfigured
         - createdAt
         - updatedAt
 
@@ -558,6 +703,12 @@ components:
         resyUrl:
           type: string
           description: "Resy reservation page URL"
+        hubspotPortalId:
+          type: string
+          description: "HubSpot portal/account ID"
+        hubspotApiKey:
+          type: string
+          description: "HubSpot private API key — write-only, never returned"
       required:
         - name
 
@@ -621,6 +772,12 @@ components:
         resyUrl:
           type: string
           description: "Resy reservation page URL"
+        hubspotPortalId:
+          type: string
+          description: "HubSpot portal/account ID"
+        hubspotApiKey:
+          type: string
+          description: "HubSpot private API key — write-only, leave blank to keep existing value"
 
     Agent:
       type: object
@@ -884,6 +1041,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AgentTaskCount"
+        upcomingSchedules:
+          type: array
+          items:
+            $ref: "#/components/schemas/UpcomingSchedule"
       required:
         - totalTasks
         - pendingApproval
@@ -892,6 +1053,7 @@ components:
         - totalProperties
         - tasksThisWeek
         - tasksByAgent
+        - upcomingSchedules
 
     AgentTaskCount:
       type: object
@@ -1024,3 +1186,274 @@ components:
         - pushedAt
         - warnings
         - message
+
+    Schedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        agentId:
+          type: integer
+        agentName:
+          type: string
+        agentIcon:
+          type: string
+        agentColor:
+          type: string
+        propertyId:
+          type: integer
+        propertyName:
+          type: string
+        taskType:
+          type: string
+        inputPrompt:
+          type: ["string", "null"]
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly]
+        dayOfWeek:
+          type: ["integer", "null"]
+          description: "0=Sunday, 1=Monday ... 6=Saturday (weekly only)"
+        dayOfMonth:
+          type: ["integer", "null"]
+          description: "1-31 (monthly only)"
+        hour:
+          type: integer
+          description: "Hour of day to run (0-23)"
+        timezone:
+          type: string
+        status:
+          type: string
+          enum: [active, paused]
+        nextRunAt:
+          type: ["string", "null"]
+        lastRunAt:
+          type: ["string", "null"]
+        lastTaskId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - agentId
+        - agentName
+        - agentIcon
+        - agentColor
+        - propertyId
+        - propertyName
+        - taskType
+        - frequency
+        - hour
+        - timezone
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateScheduleBody:
+      type: object
+      properties:
+        name:
+          type: string
+        agentId:
+          type: integer
+        propertyId:
+          type: integer
+        taskType:
+          type: string
+        inputPrompt:
+          type: string
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly]
+        dayOfWeek:
+          type: integer
+          description: "0=Sunday ... 6=Saturday (required when frequency=weekly)"
+        dayOfMonth:
+          type: integer
+          description: "1-31 (required when frequency=monthly)"
+        hour:
+          type: integer
+          description: "Hour of day (0-23, defaults to 9)"
+        timezone:
+          type: string
+          description: "IANA timezone (defaults to America/New_York)"
+      required:
+        - name
+        - agentId
+        - propertyId
+        - taskType
+        - frequency
+
+    UpdateScheduleBody:
+      type: object
+      properties:
+        name:
+          type: string
+        taskType:
+          type: string
+        inputPrompt:
+          type: string
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly]
+        dayOfWeek:
+          type: integer
+        dayOfMonth:
+          type: integer
+        hour:
+          type: integer
+        timezone:
+          type: string
+        status:
+          type: string
+          enum: [active, paused]
+
+    UpcomingSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        agentName:
+          type: string
+        agentIcon:
+          type: string
+        agentColor:
+          type: string
+        propertyName:
+          type: string
+        frequency:
+          type: string
+        nextRunAt:
+          type: ["string", "null"]
+      required:
+        - id
+        - name
+        - agentName
+        - agentIcon
+        - agentColor
+        - propertyName
+        - frequency
+
+    AnalyticsData:
+      type: object
+      properties:
+        property:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+          required:
+            - id
+            - name
+        dateRange:
+          type: object
+          properties:
+            from:
+              type: string
+            to:
+              type: string
+            label:
+              type: string
+          required:
+            - from
+            - to
+            - label
+        googleAds:
+          type: object
+          properties:
+            available:
+              type: boolean
+            campaigns:
+              type: array
+              items:
+                type: object
+            totals:
+              type: object
+              properties:
+                impressions:
+                  type: integer
+                clicks:
+                  type: integer
+                spend:
+                  type: number
+                ctr:
+                  type: number
+              required:
+                - impressions
+                - clicks
+                - spend
+                - ctr
+          required:
+            - available
+        metaAds:
+          type: object
+          properties:
+            available:
+              type: boolean
+            campaigns:
+              type: array
+              items:
+                type: object
+            totals:
+              type: object
+              properties:
+                impressions:
+                  type: integer
+                clicks:
+                  type: integer
+                spend:
+                  type: number
+                ctr:
+                  type: number
+              required:
+                - impressions
+                - clicks
+                - spend
+                - ctr
+          required:
+            - available
+        hubspot:
+          type: object
+          properties:
+            available:
+              type: boolean
+            contacts:
+              type: object
+              properties:
+                total:
+                  type: integer
+                newInPeriod:
+                  type: integer
+              required:
+                - total
+                - newInPeriod
+            deals:
+              type: object
+              properties:
+                total:
+                  type: integer
+                totalValue:
+                  type: number
+                byStage:
+                  type: object
+              required:
+                - total
+                - totalValue
+                - byStage
+          required:
+            - available
+      required:
+        - property
+        - dateRange
+        - googleAds
+        - metaAds
+        - hubspot

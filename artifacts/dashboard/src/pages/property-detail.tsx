@@ -68,6 +68,8 @@ const propertySchema = z.object({
   metaAdsAccountId: z.string().optional().nullable(),
   metaAdsAccessToken: z.string().optional().nullable(),
   metaAdPageId: z.string().optional().nullable(),
+  hubspotPortalId: z.string().optional().nullable(),
+  hubspotApiKey: z.string().optional().nullable(),
   openedAt: z.string().optional().nullable(),
   propertyType: z.string().optional().nullable(),
   logoUrl: z.string().optional().nullable(),
@@ -105,6 +107,8 @@ export default function PropertyDetail() {
       metaAdsAccountId: "",
       metaAdsAccessToken: "",
       metaAdPageId: "",
+      hubspotPortalId: "",
+      hubspotApiKey: "",
       openedAt: "",
       propertyType: "",
       logoUrl: "",
@@ -138,6 +142,8 @@ export default function PropertyDetail() {
         metaAdsAccountId: property.metaAdsAccountId || "",
         metaAdsAccessToken: "",
         metaAdPageId: property.metaAdPageId || "",
+        hubspotPortalId: property.hubspotPortalId || "",
+        hubspotApiKey: "",
         openedAt: property.openedAt ? new Date(property.openedAt).toISOString().split("T")[0] : "",
         propertyType: property.propertyType || "",
         logoUrl: property.logoUrl || "",
@@ -499,6 +505,52 @@ export default function PropertyDetail() {
                     </FormItem>
                   )} />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>CRM Integration</CardTitle>
+              <CardDescription>
+                Connect HubSpot to pull lead and pipeline analytics into Riley&apos;s performance reports.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-semibold">HubSpot</h4>
+                {property.hubspotConfigured ? (
+                  <Badge variant="secondary" className="gap-1 text-xs">
+                    <CheckCircle2 className="w-3 h-3 text-green-500" /> Connected
+                  </Badge>
+                ) : null}
+              </div>
+              {property.hubspotConfigured && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+                  <Lock className="w-3 h-3" />
+                  API key is stored — enter a new one below to update it.
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Create a private app in HubSpot Settings → Integrations → Private Apps. Grant read access to contacts and deals.
+              </p>
+              <div className="grid md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="hubspotPortalId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Portal ID</FormLabel>
+                    <FormControl><Input placeholder="12345678" {...field} value={field.value || ""} /></FormControl>
+                    <FormDescription className="text-xs">Found in HubSpot → Account & Billing or the URL bar.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="hubspotApiKey" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Private App Token</FormLabel>
+                    <FormControl><Input type="password" placeholder={property.hubspotConfigured ? "Enter to update" : "pat-na1-..."} {...field} value={field.value || ""} /></FormControl>
+                    <FormDescription className="text-xs">Private app access token from HubSpot</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               </div>
             </CardContent>
           </Card>

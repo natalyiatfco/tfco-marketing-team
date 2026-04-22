@@ -8,6 +8,7 @@ import Reviews from "./pages/reviews";
 import Properties from "./pages/properties";
 import NewProperty from "./pages/new-property";
 import PropertyDetail from "./pages/property-detail";
+import Schedules from "./pages/schedules";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,6 +30,7 @@ function Router() {
         <Route path="/properties" component={Properties} />
         <Route path="/properties/new" component={NewProperty} />
         <Route path="/properties/:id" component={PropertyDetail} />
+        <Route path="/schedules" component={Schedules} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

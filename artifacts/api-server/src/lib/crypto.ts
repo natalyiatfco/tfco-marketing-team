@@ -54,3 +54,8 @@ export function isEncrypted(value: string): boolean {
   if (parts.length !== 3) return false;
   return parts[0].length === IV_LENGTH * 2;
 }
+
+export function safeDecrypt(value: string): string {
+  if (!value) return value;
+  return isEncrypted(value) ? decryptCredential(value) : value;
+}
