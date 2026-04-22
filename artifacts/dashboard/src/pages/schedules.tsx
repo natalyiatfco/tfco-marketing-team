@@ -52,7 +52,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarClock, Pencil, Trash2, Plus, Pause, Play, History, ExternalLink, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react";
+import { CalendarClock, Pencil, Trash2, Plus, Pause, Play, History, ExternalLink, CheckCircle2, XCircle, Clock, Loader2, Radio } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -379,6 +379,9 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; clas
   failed: { label: "Failed", icon: <XCircle className="h-3 w-3" />, className: "text-destructive" },
 };
 
+const ACTIVE_STATUSES = new Set(["pending", "running", "reviewing", "revision_requested"]);
+const POLL_INTERVAL_MS = 3000;
+
 function ScheduleHistoryDrawer({
   schedule,
   open,
@@ -390,10 +393,20 @@ function ScheduleHistoryDrawer({
 }) {
   const { data: tasks = [], isLoading } = useListTasks(
     schedule ? { scheduleId: schedule.id } : {},
-    { query: { enabled: !!schedule && open } }
+    {
+      query: {
+        enabled: !!schedule && open,
+        refetchInterval: (query) => {
+          const data = query.state.data as { status: string }[] | undefined;
+          if (!data) return false;
+          return data.slice(0, 20).some((t) => ACTIVE_STATUSES.has(t.status)) ? POLL_INTERVAL_MS : false;
+        },
+      },
+    }
   );
 
   const recentTasks = (tasks as { id: number; title: string; status: string; createdAt: string; updatedAt: string }[]).slice(0, 20);
+  const isLive = recentTasks.some((t) => ACTIVE_STATUSES.has(t.status));
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -402,6 +415,12 @@ function ScheduleHistoryDrawer({
           <SheetTitle className="flex items-center gap-2">
             <History className="h-4 w-4" />
             Task History
+            {isLive && (
+              <span className="ml-auto flex items-center gap-1 text-xs font-medium text-blue-500">
+                <Radio className="h-3 w-3 animate-pulse" />
+                Live
+              </span>
+            )}
           </SheetTitle>
           {schedule && (
             <SheetDescription className="flex items-center justify-between gap-2">
