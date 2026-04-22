@@ -289,24 +289,44 @@ async function fetchHubSpotData(
     const totalContacts = totalContactsData.total ?? 0;
     const newContactsData = newContactsRes.ok ? ((await newContactsRes.json()) as { total: number }) : { total: 0 };
 
-    const dealsRes = await fetch(
-      "https://api.hubapi.com/crm/v3/objects/deals?limit=100&properties=amount,dealstage,pipeline",
-      { headers }
-    );
-
     let totalDeals = 0;
     let totalValue = 0;
     const byStage: Record<string, number> = {};
+    const MAX_DEAL_PAGES = 10;
+    let after: string | undefined;
+    let pagesFetched = 0;
+    let firstPage = true;
 
-    if (dealsRes.ok) {
-      const dealsData = (await dealsRes.json()) as { results: Array<{ properties: { amount: string; dealstage: string } }>; total?: number };
-      totalDeals = dealsData.total ?? dealsData.results?.length ?? 0;
+    while (pagesFetched < MAX_DEAL_PAGES) {
+      const dealUrl = new URL("https://api.hubapi.com/crm/v3/objects/deals");
+      dealUrl.searchParams.set("limit", "100");
+      dealUrl.searchParams.set("properties", "amount,dealstage,pipeline");
+      if (after) dealUrl.searchParams.set("after", after);
+
+      const dealsRes = await fetch(dealUrl.toString(), { headers });
+      if (!dealsRes.ok) break;
+
+      const dealsData = (await dealsRes.json()) as {
+        results: Array<{ properties: { amount: string; dealstage: string } }>;
+        total?: number;
+        paging?: { next?: { after?: string } };
+      };
+
+      if (firstPage) {
+        totalDeals = dealsData.total ?? dealsData.results?.length ?? 0;
+        firstPage = false;
+      }
+
       for (const deal of dealsData.results ?? []) {
         const amount = parseFloat(deal.properties.amount) || 0;
         const stage = deal.properties.dealstage || "unknown";
         totalValue += amount;
         byStage[stage] = (byStage[stage] ?? 0) + 1;
       }
+
+      after = dealsData.paging?.next?.after;
+      pagesFetched++;
+      if (!after) break;
     }
 
     let emailCampaigns: HubSpotData["emailCampaigns"] = undefined;

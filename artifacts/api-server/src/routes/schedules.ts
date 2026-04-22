@@ -220,6 +220,19 @@ router.patch("/schedules/:id", async (req, res): Promise<void> => {
     updatePayload.nextRunAt = computeNextRunAt(newFrequency, newDayOfWeek ?? null, newDayOfMonth ?? null, newHour, newTimezone);
   }
 
+  if (status === "active" && existing.status === "paused" && !updatePayload.nextRunAt) {
+    const isStale = !existing.nextRunAt || existing.nextRunAt <= new Date();
+    if (isStale) {
+      updatePayload.nextRunAt = computeNextRunAt(
+        existing.frequency ?? "daily",
+        existing.dayOfWeek ?? null,
+        existing.dayOfMonth ?? null,
+        existing.hour ?? 9,
+        existing.timezone ?? "America/New_York",
+      );
+    }
+  }
+
   if (Object.keys(updatePayload).length === 0) {
     const result = await buildScheduleResponse(existing);
     res.json(result);
