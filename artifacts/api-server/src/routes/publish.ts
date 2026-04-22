@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, tasksTable, propertiesTable, agentsTable, reviewsTable } from "@workspace/db";
 import { PublishTaskParams, PublishTaskBody } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
+import { decryptCredential } from "../lib/crypto";
 
 const router: IRouter = Router();
 
@@ -147,9 +148,9 @@ router.post("/tasks/:id/publish", async (req, res): Promise<void> => {
 
       const wpStatus = publishStatus === "publish" ? "publish" : "draft";
       const result = await publishToWordPress(
-        property.wordpressUrl,
-        property.wordpressUsername,
-        property.wordpressAppPassword,
+        decryptCredential(property.wordpressUrl),
+        decryptCredential(property.wordpressUsername),
+        decryptCredential(property.wordpressAppPassword),
         title,
         task.output,
         wpStatus
@@ -163,8 +164,8 @@ router.post("/tasks/:id/publish", async (req, res): Promise<void> => {
 
       const isDraft = publishStatus !== "publish";
       const result = await publishToSquarespace(
-        property.squarespaceApiKey,
-        property.squarespaceCollectionId,
+        decryptCredential(property.squarespaceApiKey),
+        decryptCredential(property.squarespaceCollectionId),
         title,
         task.output,
         isDraft

@@ -110,7 +110,7 @@ export default function TaskDetail() {
   const isApproved = task.review?.decision === "approved";
   const hasCms = task.wordpressConfigured || task.squarespaceConfigured;
   const isCmsRole = CMS_PUBLISHABLE_ROLES.includes(task.agentRole);
-  const showPublishPanel = isApproved && hasCms && isCmsRole && !task.publishStatus;
+  const showPublishPanel = isApproved && hasCms && isCmsRole && (!task.publishStatus || task.publishStatus === "failed");
   const isPublished = !!task.publishStatus && task.publishStatus !== "failed";
 
   const availablePlatforms = [

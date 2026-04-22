@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, propertiesTable } from "@workspace/db";
 import type { Property } from "@workspace/db";
 import { CreatePropertyBody, GetPropertyParams, UpdatePropertyParams, UpdatePropertyBody, DeletePropertyParams } from "@workspace/api-zod";
+import { encryptCredential } from "../lib/crypto";
 
 const router: IRouter = Router();
 
@@ -13,6 +14,16 @@ const CREDENTIAL_FIELDS = [
   "squarespaceApiKey",
   "squarespaceCollectionId",
 ] as const;
+
+function encryptCredentials(data: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...data };
+  for (const field of CREDENTIAL_FIELDS) {
+    if (typeof result[field] === "string" && result[field]) {
+      result[field] = encryptCredential(result[field] as string);
+    }
+  }
+  return result;
+}
 
 function toSafeProperty(property: Property) {
   const {
@@ -41,7 +52,7 @@ router.post("/properties", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [property] = await db.insert(propertiesTable).values(parsed.data).returning();
+  const [property] = await db.insert(propertiesTable).values(encryptCredentials(parsed.data) as typeof parsed.data).returning();
   res.status(201).json(toSafeProperty(property));
 });
 
@@ -82,7 +93,7 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
 
   const [property] = await db
     .update(propertiesTable)
-    .set({ ...updateData, updatedAt: new Date() })
+    .set({ ...(encryptCredentials(updateData) as Partial<typeof propertiesTable.$inferInsert>), updatedAt: new Date() })
     .where(eq(propertiesTable.id, params.data.id))
     .returning();
   if (!property) {
