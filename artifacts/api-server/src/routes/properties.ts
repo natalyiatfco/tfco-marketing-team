@@ -17,6 +17,9 @@ const CREDENTIAL_FIELDS = [
   "metaAdsAccessToken",
 ] as const;
 
+type DbInsert = typeof propertiesTable.$inferInsert;
+type DbUpdate = Partial<typeof propertiesTable.$inferInsert>;
+
 function encryptCredentials(data: Record<string, unknown>): Record<string, unknown> {
   const result = { ...data };
   for (const field of CREDENTIAL_FIELDS) {
@@ -27,14 +30,31 @@ function encryptCredentials(data: Record<string, unknown>): Record<string, unkno
   return result;
 }
 
-function coerceDates(data: Record<string, unknown>): Record<string, unknown> {
-  const result = { ...data };
-  if (typeof result.openedAt === "string" && result.openedAt) {
-    result.openedAt = new Date(result.openedAt);
-  } else if (result.openedAt === "" || result.openedAt === null) {
-    result.openedAt = null;
+/**
+ * Converts openedAt from ISO date string → Date and encrypts credential fields.
+ * Returns a value typed for Drizzle insert (all fields correctly typed at runtime).
+ */
+function buildInsertPayload(raw: Record<string, unknown>): DbInsert {
+  const { openedAt: openedAtRaw, ...rest } = raw;
+  const encrypted = encryptCredentials(rest);
+  const openedAt: Date | null =
+    typeof openedAtRaw === "string" && openedAtRaw ? new Date(openedAtRaw) : null;
+  return { ...encrypted, openedAt } as DbInsert;
+}
+
+/**
+ * Same as buildInsertPayload but for partial updates; omits openedAt key
+ * entirely when the caller didn't include it in the patch payload.
+ */
+function buildUpdatePayload(raw: Record<string, unknown>): DbUpdate {
+  const { openedAt: openedAtRaw, ...rest } = raw;
+  const encrypted = encryptCredentials(rest);
+  const result: Record<string, unknown> = { ...encrypted };
+  if ("openedAt" in raw) {
+    result.openedAt =
+      typeof openedAtRaw === "string" && openedAtRaw ? new Date(openedAtRaw) : null;
   }
-  return result;
+  return result as DbUpdate;
 }
 
 function toSafeProperty(property: Property) {
@@ -68,8 +88,10 @@ router.post("/properties", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [property] = await db.insert(propertiesTable).values(coerceDates(encryptCredentials(parsed.data)) as any).returning();
+  const [property] = await db
+    .insert(propertiesTable)
+    .values(buildInsertPayload(parsed.data as Record<string, unknown>))
+    .returning();
   res.status(201).json(toSafeProperty(property));
 });
 
@@ -99,7 +121,8 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const updateData = Object.fromEntries(
+  // Strip empty credential fields — blank strings mean "don't overwrite"
+  const patchData = Object.fromEntries(
     Object.entries(parsed.data).filter(([k, v]) => {
       if ((CREDENTIAL_FIELDS as readonly string[]).includes(k) && (v === "" || v === null || v === undefined)) {
         return false;
@@ -110,8 +133,7 @@ router.patch("/properties/:id", async (req, res): Promise<void> => {
 
   const [property] = await db
     .update(propertiesTable)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .set({ ...(coerceDates(encryptCredentials(updateData)) as any), updatedAt: new Date() })
+    .set({ ...buildUpdatePayload(patchData), updatedAt: new Date() })
     .where(eq(propertiesTable.id, params.data.id))
     .returning();
   if (!property) {

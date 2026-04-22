@@ -283,12 +283,15 @@ async function pushToGoogleAds(
       if (!adGroupResourceName) continue;
 
       // 3b. Create keywords for this ad group
+      // Google Ads API requires keywords inside a `keyword` sub-object on adGroupCriteria
       if (group.keywords.length > 0) {
         const keywordOperations = group.keywords.slice(0, 20).map((kw) => ({
           create: {
             adGroup: adGroupResourceName,
-            text: kw,
-            matchType: "BROAD",
+            keyword: {
+              text: kw,
+              matchType: "BROAD",
+            },
             status: "PAUSED",
           }
         }));
@@ -339,7 +342,7 @@ async function pushToMetaAds(
   accessToken: string,
   campaign: ParsedMetaAdsCampaign,
   overrideName?: string
-): Promise<{ campaignId: string; campaignName: string }> {
+): Promise<{ campaignId: string; campaignName: string; adSetId: string | null; warnings: string[] }> {
   const campaignName = overrideName || campaign.campaignName;
   const baseUrl = `https://graph.facebook.com/v21.0`;
 
@@ -421,54 +424,12 @@ async function pushToMetaAds(
     logger.warn({ err: errText }, "Meta Ads ad set creation failed — skipping ad set and ad");
   }
 
-  // Step 3: Create ad creative + ad (only if ad set was created)
-  if (adSetId) {
-    const creativeParams = new URLSearchParams({
-      name: `${campaignName} — Creative`,
-      object_story_spec: JSON.stringify({
-        link_data: {
-          message: campaign.adBody || campaign.campaignName,
-          name: campaign.adHeadline,
-          call_to_action: { type: campaign.callToAction || "LEARN_MORE" },
-        },
-        page_id: "me", // placeholder — real page ID would come from property config
-      }),
-      access_token: accessToken,
-    });
+  // Ad creative creation requires a Meta Business Page ID which is not currently
+  // collected per-property. Campaign + ad set is the complete deliverable for now;
+  // ad creative/ad creation is intentionally omitted until page_id is available.
+  // See: Meta Marketing API docs on AdCreatives — page_id is a required field.
 
-    const creativeResponse = await fetch(
-      `${baseUrl}/act_${accountId}/adcreatives`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: creativeParams.toString(),
-      }
-    ).catch(() => null);
-
-    if (creativeResponse?.ok) {
-      const creativeData = (await creativeResponse.json()) as { id: string };
-      const creativeId = creativeData.id;
-
-      const adParams = new URLSearchParams({
-        name: `${campaignName} — Ad`,
-        adset_id: adSetId,
-        creative: JSON.stringify({ creative_id: creativeId }),
-        status: "PAUSED",
-        access_token: accessToken,
-      });
-
-      await fetch(`${baseUrl}/act_${accountId}/ads`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: adParams.toString(),
-      }).catch((e) => logger.warn({ error: e }, "Meta Ads ad creation failed — continuing"));
-    } else {
-      const errText = creativeResponse ? await creativeResponse.text().catch(() => "") : "";
-      logger.warn({ err: errText }, "Meta Ads creative creation failed — skipping ad");
-    }
-  }
-
-  return { campaignId, campaignName };
+  return { campaignId, campaignName, adSetId, warnings: adSetId ? [] : ["Ad set creation failed — campaign was created but targeting was not applied. Check account permissions and retry."] };
 }
 
 // ── Route ───────────────────────────────────────────────────────────────────
@@ -543,6 +504,7 @@ router.post("/tasks/:id/push-ads", async (req, res): Promise<void> => {
   try {
     let campaignId: string | null = null;
     let campaignName: string | null = null;
+    let pushWarnings: string[] = [];
 
     if (platform === "google_ads") {
       if (!property.googleAdsCustomerId || !property.googleAdsRefreshToken) {
@@ -592,6 +554,7 @@ router.post("/tasks/:id/push-ads", async (req, res): Promise<void> => {
       );
       campaignId = result.campaignId;
       campaignName = result.campaignName;
+      pushWarnings = result.warnings ?? [];
     }
 
     await db
@@ -607,6 +570,7 @@ router.post("/tasks/:id/push-ads", async (req, res): Promise<void> => {
       campaignId,
       campaignName,
       pushedAt: now.toISOString(),
+      warnings: pushWarnings,
       message: `Campaign "${campaignName}" created as PAUSED draft on ${platform === "google_ads" ? "Google Ads" : "Meta Ads"}`,
     });
   } catch (err) {
