@@ -200,8 +200,11 @@ router.get("/tasks/:id", async (req, res): Promise<void> => {
       publishUrl: tasksTable.publishUrl,
       publishPlatform: tasksTable.publishPlatform,
       publishedAt: tasksTable.publishedAt,
-      wordpressConfigured: propertiesTable.wordpressUrl,
-      squarespaceConfigured: propertiesTable.squarespaceApiKey,
+      wpUrl: propertiesTable.wordpressUrl,
+      wpUser: propertiesTable.wordpressUsername,
+      wpPass: propertiesTable.wordpressAppPassword,
+      ssKey: propertiesTable.squarespaceApiKey,
+      ssCollId: propertiesTable.squarespaceCollectionId,
       createdAt: tasksTable.createdAt,
       updatedAt: tasksTable.updatedAt,
     })
@@ -217,12 +220,12 @@ router.get("/tasks/:id", async (req, res): Promise<void> => {
 
   const [review] = await db.select().from(reviewsTable).where(eq(reviewsTable.taskId, params.data.id));
 
-  const { wordpressConfigured, squarespaceConfigured, ...taskData } = task;
+  const { wpUrl, wpUser, wpPass, ssKey, ssCollId, ...taskData } = task;
 
   res.json({
     ...taskData,
-    wordpressConfigured: !!wordpressConfigured,
-    squarespaceConfigured: !!squarespaceConfigured,
+    wordpressConfigured: !!(wpUrl && wpUser && wpPass),
+    squarespaceConfigured: !!(ssKey && ssCollId),
     review: review ?? null,
   });
 });
