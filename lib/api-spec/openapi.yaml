@@ -523,7 +523,9 @@ components:
         status:
           type: string
         review:
-          $ref: "#/components/schemas/Review"
+          oneOf:
+            - $ref: "#/components/schemas/Review"
+            - type: "null"
         createdAt:
           type: string
         updatedAt:
