@@ -88,7 +88,7 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     .select({ propertyId: tasksTable.propertyId, count: count() })
     .from(reviewsTable)
     .innerJoin(tasksTable, eq(reviewsTable.taskId, tasksTable.id))
-    .where(eq(reviewsTable.decision, "pending"))
+    .where(isNull(reviewsTable.decision))
     .groupBy(tasksTable.propertyId);
 
   const approvedMap = new Map(approvedByPropertyRaw.map((r) => [r.propertyId, r.count]));
