@@ -6,6 +6,7 @@ import { openai } from "@workspace/integrations-openai-ai-server";
 import { logger } from "../lib/logger";
 import { fetchAnalyticsData, formatAnalyticsDataForPrompt } from "../lib/analytics-fetcher";
 import { runManagerReview } from "../lib/manager-review";
+import { buildBrandContext } from "../lib/brand-context";
 
 const router: IRouter = Router();
 
@@ -82,15 +83,7 @@ router.post("/tasks", async (req, res): Promise<void> => {
     status: "running",
   }).returning();
 
-  const brandContext = [
-    `Brand/Property: ${property.name}`,
-    property.description ? `Description: ${property.description}` : null,
-    property.brandVoice ? `Brand Voice: ${property.brandVoice}` : null,
-    property.tone ? `Tone: ${property.tone}` : null,
-    property.targetAudience ? `Target Audience: ${property.targetAudience}` : null,
-    property.primaryKeywords ? `Primary Keywords: ${property.primaryKeywords}` : null,
-    property.websiteUrl ? `Website: ${property.websiteUrl}` : null,
-  ].filter(Boolean).join("\n");
+  const brandContext = buildBrandContext(property, { includeWebsiteUrl: true });
 
   res.status(201).json({
     ...task,
