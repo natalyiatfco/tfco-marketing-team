@@ -711,6 +711,13 @@ export const GetReportResponse = zod.object({
 });
 
 /**
+ * @summary Download a report as CSV (structured by section)
+ */
+export const DownloadReportCsvParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary Download a report as PDF
  */
 export const DownloadReportPdfParams = zod.object({

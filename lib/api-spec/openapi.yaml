@@ -465,6 +465,27 @@ paths:
         "404":
           description: Report not found
 
+  /reports/{id}/download.csv:
+    get:
+      operationId: downloadReportCsv
+      tags: [reports]
+      summary: Download a report as CSV (structured by section)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: CSV file of the report content
+          content:
+            text/csv:
+              schema:
+                type: string
+        "404":
+          description: Report not found
+
   /reports/{id}/download.pdf:
     get:
       operationId: downloadReportPdf

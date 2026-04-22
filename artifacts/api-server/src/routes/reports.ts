@@ -170,4 +170,63 @@ router.get("/reports/:id/download.pdf", async (req, res): Promise<void> => {
   doc.end();
 });
 
+router.get("/reports/:id/download.csv", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid report id" });
+    return;
+  }
+
+  const [report] = await db
+    .select({
+      id: tasksTable.id,
+      title: tasksTable.title,
+      output: tasksTable.output,
+      createdAt: tasksTable.createdAt,
+      agentName: agentsTable.name,
+      propertyName: propertiesTable.name,
+    })
+    .from(tasksTable)
+    .innerJoin(agentsTable, eq(tasksTable.agentId, agentsTable.id))
+    .innerJoin(propertiesTable, eq(tasksTable.propertyId, propertiesTable.id))
+    .where(and(eq(tasksTable.id, id), isNotNull(tasksTable.output)));
+
+  if (!report) {
+    res.status(404).json({ error: "Report not found" });
+    return;
+  }
+
+  const filename = `report_${id}_${(report.title ?? "report").replace(/[^a-z0-9]/gi, "_").toLowerCase()}.csv`;
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+  const escape = (val: string) => `"${val.replace(/"/g, '""')}"`;
+
+  const rows: string[] = [
+    ["Field", "Value"].map(escape).join(","),
+    ["Report ID", String(report.id)].map(escape).join(","),
+    ["Title", report.title ?? ""].map(escape).join(","),
+    ["Agent", report.agentName].map(escape).join(","),
+    ["Property", report.propertyName].map(escape).join(","),
+    ["Generated At", report.createdAt?.toISOString() ?? ""].map(escape).join(","),
+    [],
+    ["Section", "Content"].map(escape).join(","),
+  ].map((r) => (Array.isArray(r) ? "" : r));
+
+  const output = report.output ?? "";
+  let currentSection = "Full Report";
+  const sectionRows: string[] = [];
+
+  for (const line of output.split("\n")) {
+    if (line.startsWith("# ") || line.startsWith("## ") || line.startsWith("### ")) {
+      currentSection = line.replace(/^#{1,3} /, "");
+    } else if (line.trim() !== "") {
+      sectionRows.push([currentSection, line].map(escape).join(","));
+    }
+  }
+
+  const csv = [...rows, ...sectionRows].join("\n");
+  res.send(csv);
+});
+
 export default router;

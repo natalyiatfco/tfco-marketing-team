@@ -35,6 +35,10 @@ export default function Reports() {
     window.open(`/api/reports/${id}/download.pdf`, "_blank");
   };
 
+  const downloadReportCsv = (id: number) => {
+    window.open(`/api/reports/${id}/download.csv`, "_blank");
+  };
+
   const downloadAnalyticsCsv = (propertyId: number, range: string) => {
     window.open(`/api/properties/${propertyId}/analytics-data.csv?dateRange=${range}`, "_blank");
   };
@@ -170,12 +174,23 @@ export default function Reports() {
                         </Button>
                         <Button
                           size="sm"
-                          variant="ghost"
-                          className="h-7 w-7 p-0"
+                          variant="outline"
+                          className="h-7 px-2 text-xs gap-1"
+                          title="Download CSV"
+                          onClick={() => downloadReportCsv(report.id)}
+                        >
+                          <Download className="h-3 w-3" />
+                          CSV
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs gap-1"
                           title="Download PDF"
                           onClick={() => downloadPdf(report.id)}
                         >
-                          <Download className="h-4 w-4" />
+                          <Download className="h-3 w-3" />
+                          PDF
                         </Button>
                       </div>
                     </div>

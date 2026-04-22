@@ -1766,6 +1766,93 @@ export function useGetReport<
 }
 
 /**
+ * @summary Download a report as CSV (structured by section)
+ */
+export const getDownloadReportCsvUrl = (id: number) => {
+  return `/api/reports/${id}/download.csv`;
+};
+
+export const downloadReportCsv = async (
+  id: number,
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getDownloadReportCsvUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadReportCsvQueryKey = (id: number) => {
+  return [`/api/reports/${id}/download.csv`] as const;
+};
+
+export const getDownloadReportCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadReportCsv>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof downloadReportCsv>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDownloadReportCsvQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadReportCsv>>
+  > = ({ signal }) => downloadReportCsv(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadReportCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadReportCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadReportCsv>>
+>;
+export type DownloadReportCsvQueryError = ErrorType<void>;
+
+/**
+ * @summary Download a report as CSV (structured by section)
+ */
+
+export function useDownloadReportCsv<
+  TData = Awaited<ReturnType<typeof downloadReportCsv>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof downloadReportCsv>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadReportCsvQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Download a report as PDF
  */
 export const getDownloadReportPdfUrl = (id: number) => {
