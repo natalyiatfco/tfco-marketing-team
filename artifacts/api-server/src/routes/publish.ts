@@ -3,9 +3,16 @@ import { eq } from "drizzle-orm";
 import { db, tasksTable, propertiesTable, agentsTable, reviewsTable } from "@workspace/db";
 import { PublishTaskParams, PublishTaskBody } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
-import { decryptCredential } from "../lib/crypto";
+import { decryptCredential, isEncrypted } from "../lib/crypto";
+
+const CMS_PUBLISHABLE_ROLES = ["content_specialist", "seo_specialist"] as const;
 
 const router: IRouter = Router();
+
+function safeDecrypt(value: string): string {
+  if (!value) return value;
+  return isEncrypted(value) ? decryptCredential(value) : value;
+}
 
 async function publishToWordPress(
   siteUrl: string,
@@ -24,16 +31,12 @@ async function publishToWordPress(
       "Content-Type": "application/json",
       Authorization: `Basic ${credentials}`,
     },
-    body: JSON.stringify({
-      title,
-      content,
-      status,
-    }),
+    body: JSON.stringify({ title, content, status }),
   });
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`WordPress API error ${response.status}: ${text}`);
+    throw new Error(`WordPress API error ${response.status}: ${text.slice(0, 200)}`);
   }
 
   const data = (await response.json()) as { link?: string };
@@ -55,17 +58,12 @@ async function publishToSquarespace(
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      type: "text",
-      title,
-      body: content,
-      isDraft,
-    }),
+    body: JSON.stringify({ type: "text", title, body: content, isDraft }),
   });
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Squarespace API error ${response.status}: ${text}`);
+    throw new Error(`Squarespace API error ${response.status}: ${text.slice(0, 200)}`);
   }
 
   const data = (await response.json()) as { item?: { fullUrl?: string } };
@@ -87,11 +85,6 @@ router.post("/tasks/:id/publish", async (req, res): Promise<void> => {
 
   const { platform, publishStatus, postTitle } = body.data;
 
-  if (platform !== "wordpress" && platform !== "squarespace") {
-    res.status(400).json({ error: "Platform must be 'wordpress' or 'squarespace'" });
-    return;
-  }
-
   const [task] = await db
     .select({
       id: tasksTable.id,
@@ -99,13 +92,21 @@ router.post("/tasks/:id/publish", async (req, res): Promise<void> => {
       output: tasksTable.output,
       status: tasksTable.status,
       propertyId: tasksTable.propertyId,
-      agentId: tasksTable.agentId,
+      agentRole: agentsTable.role,
     })
     .from(tasksTable)
+    .innerJoin(agentsTable, eq(tasksTable.agentId, agentsTable.id))
     .where(eq(tasksTable.id, params.data.id));
 
   if (!task) {
     res.status(404).json({ error: "Task not found" });
+    return;
+  }
+
+  if (!(CMS_PUBLISHABLE_ROLES as readonly string[]).includes(task.agentRole)) {
+    res.status(409).json({
+      error: `Only content_specialist and seo_specialist tasks can be published to CMS. This task belongs to a ${task.agentRole}.`,
+    });
     return;
   }
 
@@ -142,15 +143,15 @@ router.post("/tasks/:id/publish", async (req, res): Promise<void> => {
 
     if (platform === "wordpress") {
       if (!property.wordpressUrl || !property.wordpressUsername || !property.wordpressAppPassword) {
-        res.status(422).json({ error: "WordPress credentials are not configured for this property" });
+        res.status(422).json({ error: "WordPress credentials are not fully configured for this property" });
         return;
       }
 
       const wpStatus = publishStatus === "publish" ? "publish" : "draft";
       const result = await publishToWordPress(
-        decryptCredential(property.wordpressUrl),
-        decryptCredential(property.wordpressUsername),
-        decryptCredential(property.wordpressAppPassword),
+        safeDecrypt(property.wordpressUrl),
+        safeDecrypt(property.wordpressUsername),
+        safeDecrypt(property.wordpressAppPassword),
         title,
         task.output,
         wpStatus
@@ -158,14 +159,14 @@ router.post("/tasks/:id/publish", async (req, res): Promise<void> => {
       publishUrl = result.url;
     } else {
       if (!property.squarespaceApiKey || !property.squarespaceCollectionId) {
-        res.status(422).json({ error: "Squarespace credentials are not configured for this property" });
+        res.status(422).json({ error: "Squarespace credentials are not fully configured for this property" });
         return;
       }
 
       const isDraft = publishStatus !== "publish";
       const result = await publishToSquarespace(
-        decryptCredential(property.squarespaceApiKey),
-        decryptCredential(property.squarespaceCollectionId),
+        safeDecrypt(property.squarespaceApiKey),
+        safeDecrypt(property.squarespaceCollectionId),
         title,
         task.output,
         isDraft
@@ -175,16 +176,10 @@ router.post("/tasks/:id/publish", async (req, res): Promise<void> => {
 
     await db
       .update(tasksTable)
-      .set({
-        publishStatus,
-        publishUrl,
-        publishPlatform: platform,
-        publishedAt: now,
-        updatedAt: now,
-      })
+      .set({ publishStatus, publishUrl, publishPlatform: platform, publishedAt: now, updatedAt: now })
       .where(eq(tasksTable.id, task.id));
 
-    logger.info({ taskId: task.id, platform, publishStatus, publishUrl }, "Task published to CMS");
+    logger.info({ taskId: task.id, platform, publishStatus }, "Task published to CMS");
 
     res.json({
       taskId: task.id,
@@ -195,7 +190,7 @@ router.post("/tasks/:id/publish", async (req, res): Promise<void> => {
       message: `Successfully published to ${platform} as ${publishStatus}`,
     });
   } catch (err) {
-    logger.error({ err, taskId: task.id, platform }, "CMS publish failed");
+    logger.error({ taskId: task.id, platform }, "CMS publish failed");
 
     await db
       .update(tasksTable)
