@@ -230,37 +230,6 @@ export default function PropertyDetail() {
             <CardHeader>
               <CardTitle>General Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Property/Brand Name *</FormLabel>
-                    <FormControl><Input {...field} value={field.value || ""} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl><Textarea {...field} value={field.value || ""} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Property Details</CardTitle>
-              <CardDescription>Logo, type, opening date, and reservations link.</CardDescription>
-            </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
                 <label className="text-sm font-medium leading-none">Logo</label>
@@ -312,6 +281,18 @@ export default function PropertyDetail() {
                 </div>
               </div>
 
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Property/Brand Name *</FormLabel>
+                    <FormControl><Input {...field} value={field.value || ""} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="grid md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -346,19 +327,19 @@ export default function PropertyDetail() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="resyUrl"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>Resy Page URL</FormLabel>
-                      <FormControl><Input type="url" placeholder="https://resy.com/cities/.../venues/..." {...field} value={field.value || ""} /></FormControl>
-                      <FormDescription className="text-xs">Link to this property's Resy reservation page</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl><Textarea {...field} value={field.value || ""} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
 
