@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { format } from "date-fns";
-import { CheckCircle2, Clock, Loader2, AlertCircle, CalendarClock } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, AlertCircle, CalendarClock, RefreshCw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Tasks() {
@@ -132,7 +132,11 @@ export default function Tasks() {
                   <div className="flex items-center gap-4 sm:ml-auto">
                     {task.status === 'pending' && <Badge variant="secondary" className="gap-1.5"><Clock className="w-3 h-3" /> Pending</Badge>}
                     {task.status === 'running' && <Badge variant="default" className="gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Running</Badge>}
-                    {task.status === 'completed' && <Badge variant="outline" className="gap-1.5 text-green-600 border-green-600/30 bg-green-600/10"><CheckCircle2 className="w-3 h-3" /> Completed</Badge>}
+                    {task.status === 'reviewing' && <Badge className="gap-1.5 bg-blue-600"><Loader2 className="w-3 h-3 animate-spin" /> Manager Reviewing</Badge>}
+                    {task.status === 'completed' && <Badge variant="outline" className="gap-1.5 text-amber-600 border-amber-600/30 bg-amber-600/10"><Clock className="w-3 h-3" /> Awaiting Approval</Badge>}
+                    {task.status === 'approved' && <Badge className="gap-1.5 bg-green-600"><CheckCircle2 className="w-3 h-3" /> Approved</Badge>}
+                    {task.status === 'revision_requested' && <Badge variant="outline" className="gap-1.5 border-primary text-primary"><RefreshCw className="w-3 h-3" /> Revision Needed</Badge>}
+                    {task.status === 'rejected' && <Badge variant="destructive" className="gap-1.5"><AlertCircle className="w-3 h-3" /> Rejected</Badge>}
                     {task.status === 'failed' && <Badge variant="destructive" className="gap-1.5"><AlertCircle className="w-3 h-3" /> Failed</Badge>}
                   </div>
                 </CardContent>

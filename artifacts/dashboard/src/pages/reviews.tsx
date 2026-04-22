@@ -1,6 +1,4 @@
-import { useListReviews } from "@workspace/api-client-react";
-import { type z } from "zod/v4";
-import { ListReviewsResponseItem } from "@workspace/api-zod";
+import { useListReviews, type ListReviewsQueryResult } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
@@ -8,7 +6,7 @@ import { format } from "date-fns";
 import { Clock, CheckCircle2, RefreshCw, XCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-type ReviewItem = z.infer<typeof ListReviewsResponseItem>;
+type ReviewItem = NonNullable<ListReviewsQueryResult>[number];
 
 export default function Reviews() {
   const { data: allReviews, isLoading } = useListReviews();
