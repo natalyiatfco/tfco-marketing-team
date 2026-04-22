@@ -73,6 +73,43 @@ workspace/
 5. Manager agent (Casey) auto-reviews → creates review record
 6. Task status → "completed"
 7. Human sees review in Approvals queue → POST /reviews/:id/decide
+8. For approved content/SEO tasks: POST /tasks/:id/publish → pushes to WordPress or Squarespace
+9. For approved paid_specialist tasks: POST /tasks/:id/push-ads → pushes PAUSED campaign to Google Ads or Meta Ads
+
+## Ad Platform Integration (Task #3)
+
+### Properties — New Ad Fields
+- `googleAdsCustomerId` — stored in DB (plaintext, numeric)
+- `googleAdsRefreshToken` — AES-256-GCM encrypted at rest
+- `metaAdsAccountId` — stored in DB (plaintext, numeric)
+- `metaAdsAccessToken` — AES-256-GCM encrypted at rest
+- `googleAdsConfigured` / `metaAdsConfigured` — boolean flags (safe response)
+
+### Tasks — New Ad Fields
+- `adPushStatus` — push status (null | "success" | "failed")
+- `adCampaignId` — returned campaign ID from platform
+- `adPlatform` — "google_ads" | "meta_ads"
+- `adPushedAt` — timestamp
+
+### Push-Ads Route (`/tasks/:id/push-ads`)
+- Only accessible for `paid_specialist` tasks
+- Must be approved with review decision
+- Google Ads: OAuth2 token refresh → create Budget → create Campaign (PAUSED)
+- Meta Ads: Marketing API v21.0 → create Campaign (PAUSED)
+- Required env vars: `GOOGLE_ADS_DEVELOPER_TOKEN`, `GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`
+
+### Structured Output Formats
+Jordan (paid_specialist) emits:
+- `===GOOGLE ADS CAMPAIGN===...===END GOOGLE ADS===` with ad groups, keywords, headlines
+- `===META ADS CAMPAIGN===...===END META ADS===` with audience + creative fields
+
+Morgan (social_media_specialist) emits:
+- `===INSTAGRAM===...===END INSTAGRAM===`
+- `===FACEBOOK===...===END FACEBOOK===`
+- `===TWITTER/X===...===END TWITTER===`
+- `===LINKEDIN===...===END LINKEDIN===`
+
+Dashboard task-detail page parses these sections and renders them as formatted platform cards.
 
 ## LLM Model
 

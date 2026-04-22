@@ -32,8 +32,22 @@ export interface Property {
   twitterHandle?: string | null;
   /** @nullable */
   linkedinHandle?: string | null;
+  /**
+   * Google Ads customer/account ID (e.g. 123-456-7890) — read-only safe field
+   * @nullable
+   */
+  googleAdsCustomerId?: string | null;
+  /**
+   * Meta Ads account ID (e.g. act_123456789) — read-only safe field
+   * @nullable
+   */
+  metaAdsAccountId?: string | null;
   wordpressConfigured: boolean;
   squarespaceConfigured: boolean;
+  /** True when both Google Ads customer ID and refresh token are stored */
+  googleAdsConfigured: boolean;
+  /** True when both Meta Ads account ID and access token are stored */
+  metaAdsConfigured: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,6 +69,14 @@ export interface CreatePropertyBody {
   wordpressAppPassword?: string;
   squarespaceApiKey?: string;
   squarespaceCollectionId?: string;
+  /** Google Ads customer ID (digits only, e.g. 1234567890) */
+  googleAdsCustomerId?: string;
+  /** Google Ads OAuth2 refresh token — write-only, never returned */
+  googleAdsRefreshToken?: string;
+  /** Meta Ads account ID without 'act_' prefix, e.g. 123456789 */
+  metaAdsAccountId?: string;
+  /** Meta Ads access token — write-only, never returned */
+  metaAdsAccessToken?: string;
 }
 
 export interface UpdatePropertyBody {
@@ -74,6 +96,12 @@ export interface UpdatePropertyBody {
   wordpressAppPassword?: string;
   squarespaceApiKey?: string;
   squarespaceCollectionId?: string;
+  googleAdsCustomerId?: string;
+  /** Write-only — leave blank to keep existing value */
+  googleAdsRefreshToken?: string;
+  metaAdsAccountId?: string;
+  /** Write-only — leave blank to keep existing value */
+  metaAdsAccessToken?: string;
 }
 
 export interface Agent {
@@ -168,6 +196,20 @@ export interface TaskDetail {
   publishedAt?: string | null;
   wordpressConfigured: boolean;
   squarespaceConfigured: boolean;
+  googleAdsConfigured: boolean;
+  metaAdsConfigured: boolean;
+  /** @nullable */
+  googleAdsCustomerId?: string | null;
+  /** @nullable */
+  metaAdsAccountId?: string | null;
+  /** @nullable */
+  adPushStatus?: string | null;
+  /** @nullable */
+  adCampaignId?: string | null;
+  /** @nullable */
+  adPlatform?: string | null;
+  /** @nullable */
+  adPushedAt?: string | null;
   review?: Review | null;
   createdAt: string;
   updatedAt: string;
@@ -252,6 +294,35 @@ export interface PublishResult {
   /** @nullable */
   publishUrl?: string | null;
   publishedAt: string;
+  message: string;
+}
+
+/**
+ * Target ad platform
+ */
+export type PushAdsBodyPlatform =
+  (typeof PushAdsBodyPlatform)[keyof typeof PushAdsBodyPlatform];
+
+export const PushAdsBodyPlatform = {
+  google_ads: "google_ads",
+  meta_ads: "meta_ads",
+} as const;
+
+export interface PushAdsBody {
+  /** Target ad platform */
+  platform: PushAdsBodyPlatform;
+  /** Optional override for the parsed campaign name */
+  overrideCampaignName?: string;
+}
+
+export interface PushAdsResult {
+  taskId: number;
+  platform: string;
+  /** @nullable */
+  campaignId?: string | null;
+  /** @nullable */
+  campaignName?: string | null;
+  pushedAt: string;
   message: string;
 }
 

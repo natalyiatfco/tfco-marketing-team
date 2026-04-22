@@ -42,6 +42,10 @@ const propertySchema = z.object({
   wordpressAppPassword: z.string().optional().nullable(),
   squarespaceApiKey: z.string().optional().nullable(),
   squarespaceCollectionId: z.string().optional().nullable(),
+  googleAdsCustomerId: z.string().optional().nullable(),
+  googleAdsRefreshToken: z.string().optional().nullable(),
+  metaAdsAccountId: z.string().optional().nullable(),
+  metaAdsAccessToken: z.string().optional().nullable(),
 });
 
 type PropertyFormValues = z.infer<typeof propertySchema>;
@@ -69,6 +73,10 @@ export default function PropertyDetail() {
       wordpressAppPassword: "",
       squarespaceApiKey: "",
       squarespaceCollectionId: "",
+      googleAdsCustomerId: "",
+      googleAdsRefreshToken: "",
+      metaAdsAccountId: "",
+      metaAdsAccessToken: "",
     },
   });
 
@@ -91,6 +99,10 @@ export default function PropertyDetail() {
         wordpressAppPassword: "",
         squarespaceApiKey: "",
         squarespaceCollectionId: "",
+        googleAdsCustomerId: property.googleAdsCustomerId || "",
+        googleAdsRefreshToken: "",
+        metaAdsAccountId: property.metaAdsAccountId || "",
+        metaAdsAccessToken: "",
       });
     }
   }, [property, form]);
@@ -338,6 +350,92 @@ export default function PropertyDetail() {
                       <FormLabel>Blog Collection ID</FormLabel>
                       <FormControl><Input placeholder="5f2abc..." {...field} value={field.value || ""} /></FormControl>
                       <FormDescription className="text-xs">From the Squarespace API collections endpoint.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Ad Platforms</CardTitle>
+              <CardDescription>
+                Connect Google Ads and Meta Ads to push approved paid campaigns directly from the approval queue.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-semibold">Google Ads</h4>
+                  {property.googleAdsConfigured ? (
+                    <Badge variant="secondary" className="gap-1 text-xs">
+                      <CheckCircle2 className="w-3 h-3 text-green-500" /> Connected
+                    </Badge>
+                  ) : null}
+                </div>
+                {property.googleAdsConfigured && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+                    <Lock className="w-3 h-3" />
+                    Refresh token is stored — enter a new one below to update it.
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Requires a Google Ads Customer ID and OAuth2 refresh token. Also set <code className="bg-muted px-1 rounded">GOOGLE_ADS_DEVELOPER_TOKEN</code>, <code className="bg-muted px-1 rounded">GOOGLE_ADS_CLIENT_ID</code>, and <code className="bg-muted px-1 rounded">GOOGLE_ADS_CLIENT_SECRET</code> environment variables.
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="googleAdsCustomerId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Customer ID</FormLabel>
+                      <FormControl><Input placeholder="1234567890" {...field} value={field.value || ""} /></FormControl>
+                      <FormDescription className="text-xs">10-digit Google Ads account ID</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="googleAdsRefreshToken" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>OAuth2 Refresh Token</FormLabel>
+                      <FormControl><Input type="password" placeholder={property.googleAdsConfigured ? "Enter to update" : "1//0..."} {...field} value={field.value || ""} /></FormControl>
+                      <FormDescription className="text-xs">From Google OAuth2 authorization flow</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-6 space-y-3">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-semibold">Meta Ads</h4>
+                  {property.metaAdsConfigured ? (
+                    <Badge variant="secondary" className="gap-1 text-xs">
+                      <CheckCircle2 className="w-3 h-3 text-green-500" /> Connected
+                    </Badge>
+                  ) : null}
+                </div>
+                {property.metaAdsConfigured && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+                    <Lock className="w-3 h-3" />
+                    Access token is stored — enter a new one below to update it.
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Requires a Meta Ad Account ID and a System User access token from Meta Business Manager.
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="metaAdsAccountId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ad Account ID</FormLabel>
+                      <FormControl><Input placeholder="123456789" {...field} value={field.value || ""} /></FormControl>
+                      <FormDescription className="text-xs">Numeric ID from Meta Business Manager (without "act_")</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="metaAdsAccessToken" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Access Token</FormLabel>
+                      <FormControl><Input type="password" placeholder={property.metaAdsConfigured ? "Enter to update" : "EAABs..."} {...field} value={field.value || ""} /></FormControl>
+                      <FormDescription className="text-xs">System user or page access token</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )} />

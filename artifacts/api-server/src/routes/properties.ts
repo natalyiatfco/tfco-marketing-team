@@ -13,6 +13,8 @@ const CREDENTIAL_FIELDS = [
   "wordpressAppPassword",
   "squarespaceApiKey",
   "squarespaceCollectionId",
+  "googleAdsRefreshToken",
+  "metaAdsAccessToken",
 ] as const;
 
 function encryptCredentials(data: Record<string, unknown>): Record<string, unknown> {
@@ -32,12 +34,16 @@ function toSafeProperty(property: Property) {
     wordpressAppPassword,
     squarespaceApiKey,
     squarespaceCollectionId,
+    googleAdsRefreshToken,
+    metaAdsAccessToken,
     ...safe
   } = property;
   return {
     ...safe,
     wordpressConfigured: !!(wordpressUrl && wordpressUsername && wordpressAppPassword),
     squarespaceConfigured: !!(squarespaceApiKey && squarespaceCollectionId),
+    googleAdsConfigured: !!(safe.googleAdsCustomerId && googleAdsRefreshToken),
+    metaAdsConfigured: !!(safe.metaAdsAccountId && metaAdsAccessToken),
   };
 }
 

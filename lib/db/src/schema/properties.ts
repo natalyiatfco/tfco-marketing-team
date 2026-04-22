@@ -20,6 +20,10 @@ export const propertiesTable = pgTable("properties", {
   wordpressAppPassword: text("wordpress_app_password"),
   squarespaceApiKey: text("squarespace_api_key"),
   squarespaceCollectionId: text("squarespace_collection_id"),
+  googleAdsCustomerId: text("google_ads_customer_id"),
+  googleAdsRefreshToken: text("google_ads_refresh_token"),
+  metaAdsAccountId: text("meta_ads_account_id"),
+  metaAdsAccessToken: text("meta_ads_access_token"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

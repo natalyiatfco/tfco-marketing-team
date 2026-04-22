@@ -30,6 +30,8 @@ import type {
   Property,
   PublishResult,
   PublishTaskBody,
+  PushAdsBody,
+  PushAdsResult,
   Review,
   Task,
   TaskDetail,
@@ -1040,6 +1042,93 @@ export const usePublishTask = <
   TContext
 > => {
   return useMutation(getPublishTaskMutationOptions(options));
+};
+
+/**
+ * @summary Push an approved paid ad task output to Google Ads or Meta Ads
+ */
+export const getPushTaskToAdsUrl = (id: number) => {
+  return `/api/tasks/${id}/push-ads`;
+};
+
+export const pushTaskToAds = async (
+  id: number,
+  pushAdsBody: PushAdsBody,
+  options?: RequestInit,
+): Promise<PushAdsResult> => {
+  return customFetch<PushAdsResult>(getPushTaskToAdsUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pushAdsBody),
+  });
+};
+
+export const getPushTaskToAdsMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pushTaskToAds>>,
+    TError,
+    { id: number; data: BodyType<PushAdsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pushTaskToAds>>,
+  TError,
+  { id: number; data: BodyType<PushAdsBody> },
+  TContext
+> => {
+  const mutationKey = ["pushTaskToAds"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pushTaskToAds>>,
+    { id: number; data: BodyType<PushAdsBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return pushTaskToAds(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PushTaskToAdsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pushTaskToAds>>
+>;
+export type PushTaskToAdsMutationBody = BodyType<PushAdsBody>;
+export type PushTaskToAdsMutationError = ErrorType<void>;
+
+/**
+ * @summary Push an approved paid ad task output to Google Ads or Meta Ads
+ */
+export const usePushTaskToAds = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pushTaskToAds>>,
+    TError,
+    { id: number; data: BodyType<PushAdsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pushTaskToAds>>,
+  TError,
+  { id: number; data: BodyType<PushAdsBody> },
+  TContext
+> => {
+  return useMutation(getPushTaskToAdsMutationOptions(options));
 };
 
 /**

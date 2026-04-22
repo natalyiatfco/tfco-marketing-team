@@ -1,4 +1,4 @@
-import { useGetTask, useDecideReview, usePublishTask, getGetTaskQueryKey, getListTasksQueryKey, getListReviewsQueryKey } from "@workspace/api-client-react";
+import { useGetTask, useDecideReview, usePublishTask, usePushTaskToAds, getGetTaskQueryKey, getListTasksQueryKey, getListReviewsQueryKey } from "@workspace/api-client-react";
 import { useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,11 @@ import {
   Globe,
   Send,
   ExternalLink,
+  TrendingUp,
+  Instagram,
+  Facebook,
+  Twitter,
+  Linkedin,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
@@ -32,6 +37,76 @@ import {
 } from "@/components/ui/select";
 
 const CMS_PUBLISHABLE_ROLES = ["content_specialist", "seo_specialist"];
+const ADS_PUSHABLE_ROLES = ["paid_specialist"];
+const SOCIAL_ROLES = ["social_media_specialist"];
+
+interface SocialPlatformSection {
+  platform: string;
+  content: string;
+  icon: React.ReactNode;
+  borderColor: string;
+  bgColor: string;
+  labelColor: string;
+}
+
+function parseSocialOutput(output: string): SocialPlatformSection[] {
+  const sections: SocialPlatformSection[] = [];
+
+  const platformDefs = [
+    {
+      key: "instagram",
+      pattern: /===INSTAGRAM===([\s\S]*?)===END INSTAGRAM===/i,
+      platform: "Instagram",
+      icon: <Instagram className="w-4 h-4" />,
+      borderColor: "border-pink-500/40",
+      bgColor: "bg-pink-500/5",
+      labelColor: "text-pink-600",
+    },
+    {
+      key: "facebook",
+      pattern: /===FACEBOOK===([\s\S]*?)===END FACEBOOK===/i,
+      platform: "Facebook",
+      icon: <Facebook className="w-4 h-4" />,
+      borderColor: "border-blue-600/40",
+      bgColor: "bg-blue-600/5",
+      labelColor: "text-blue-700",
+    },
+    {
+      key: "twitter",
+      pattern: /===TWITTER\/X===([\s\S]*?)===END TWITTER===/i,
+      platform: "Twitter / X",
+      icon: <Twitter className="w-4 h-4" />,
+      borderColor: "border-sky-500/40",
+      bgColor: "bg-sky-500/5",
+      labelColor: "text-sky-600",
+    },
+    {
+      key: "linkedin",
+      pattern: /===LINKEDIN===([\s\S]*?)===END LINKEDIN===/i,
+      platform: "LinkedIn",
+      icon: <Linkedin className="w-4 h-4" />,
+      borderColor: "border-blue-800/40",
+      bgColor: "bg-blue-800/5",
+      labelColor: "text-blue-900 dark:text-blue-300",
+    },
+  ];
+
+  for (const def of platformDefs) {
+    const match = output.match(def.pattern);
+    if (match) {
+      sections.push({
+        platform: def.platform,
+        content: match[1].trim(),
+        icon: def.icon,
+        borderColor: def.borderColor,
+        bgColor: def.bgColor,
+        labelColor: def.labelColor,
+      });
+    }
+  }
+
+  return sections;
+}
 
 export default function TaskDetail() {
   const params = useParams();
@@ -40,6 +115,7 @@ export default function TaskDetail() {
   const [managerNotes, setManagerNotes] = useState("");
   const [publishPlatform, setPublishPlatform] = useState<"wordpress" | "squarespace">("wordpress");
   const [publishStatusChoice, setPublishStatusChoice] = useState<"draft" | "publish">("draft");
+  const [adPlatform, setAdPlatform] = useState<"google_ads" | "meta_ads">("google_ads");
 
   const id = params.id ? parseInt(params.id) : 0;
 
@@ -49,6 +125,7 @@ export default function TaskDetail() {
 
   const decideReview = useDecideReview();
   const publishTask = usePublishTask();
+  const pushToAds = usePushTaskToAds();
 
   if (isLoading) {
     return <div className="space-y-6 animate-pulse p-4">
@@ -107,11 +184,42 @@ export default function TaskDetail() {
     });
   };
 
+  const handlePushToAds = () => {
+    pushToAds.mutate({
+      id,
+      data: { platform: effectiveAdPlatform }
+    }, {
+      onSuccess: (result) => {
+        toast({
+          title: `Campaign pushed to ${effectiveAdPlatform === "google_ads" ? "Google Ads" : "Meta Ads"}`,
+          description: `Campaign ID: ${result.campaignId} — status: PAUSED (review before enabling)`,
+        });
+        queryClient.invalidateQueries({ queryKey: getGetTaskQueryKey(id) });
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+      },
+      onError: (err: Error) => {
+        toast({
+          title: "Ad push failed",
+          description: err.message ?? "Could not push campaign to ad platform.",
+          variant: "destructive",
+        });
+      }
+    });
+  };
+
   const isApproved = task.review?.decision === "approved";
   const hasCms = task.wordpressConfigured || task.squarespaceConfigured;
   const isCmsRole = CMS_PUBLISHABLE_ROLES.includes(task.agentRole);
   const showPublishPanel = isApproved && hasCms && isCmsRole && (!task.publishStatus || task.publishStatus === "failed");
   const isPublished = !!task.publishStatus && task.publishStatus !== "failed";
+
+  const hasAdPlatform = task.googleAdsConfigured || task.metaAdsConfigured;
+  const isAdsRole = ADS_PUSHABLE_ROLES.includes(task.agentRole);
+  const showPushToAdsPanel = isApproved && hasAdPlatform && isAdsRole && (!task.adPushStatus || task.adPushStatus === "failed");
+  const isAdPushed = !!task.adPushStatus && task.adPushStatus !== "failed";
+
+  const isSocialRole = SOCIAL_ROLES.includes(task.agentRole);
+  const socialSections = isSocialRole && task.output ? parseSocialOutput(task.output) : [];
 
   const availablePlatforms = [
     ...(task.wordpressConfigured ? [{ value: "wordpress" as const, label: "WordPress" }] : []),
@@ -122,6 +230,16 @@ export default function TaskDetail() {
     availablePlatforms.find((p) => p.value === publishPlatform)?.value ??
     availablePlatforms[0]?.value ??
     "wordpress";
+
+  const availableAdPlatforms = [
+    ...(task.googleAdsConfigured ? [{ value: "google_ads" as const, label: "Google Ads" }] : []),
+    ...(task.metaAdsConfigured ? [{ value: "meta_ads" as const, label: "Meta Ads" }] : []),
+  ];
+
+  const effectiveAdPlatform: "google_ads" | "meta_ads" =
+    availableAdPlatforms.find((p) => p.value === adPlatform)?.value ??
+    availableAdPlatforms[0]?.value ??
+    "google_ads";
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -154,6 +272,18 @@ export default function TaskDetail() {
           {task.publishStatus === "failed" && (
             <Badge variant="destructive" className="text-sm py-1 gap-1.5">
               <AlertCircle className="w-3.5 h-3.5" /> Publish Failed
+            </Badge>
+          )}
+          {isAdPushed && (
+            <Badge variant="secondary" className="text-sm py-1 border-orange-500 text-orange-600 bg-orange-500/10 gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5" />
+              Ad Campaign Pushed
+              {task.adPlatform && ` · ${task.adPlatform === "google_ads" ? "Google Ads" : "Meta Ads"}`}
+            </Badge>
+          )}
+          {task.adPushStatus === "failed" && (
+            <Badge variant="destructive" className="text-sm py-1 gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5" /> Ad Push Failed
             </Badge>
           )}
         </div>
@@ -209,6 +339,38 @@ export default function TaskDetail() {
               )}
             </CardContent>
           </Card>
+
+          {socialSections.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Platform Content</h2>
+              {socialSections.map((section) => (
+                <Card key={section.platform} className={`border ${section.borderColor}`}>
+                  <CardHeader className={`${section.bgColor} border-b border-border pb-3 pt-4`}>
+                    <div className={`flex items-center gap-2 font-semibold ${section.labelColor}`}>
+                      {section.icon}
+                      {section.platform}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <div className="text-sm whitespace-pre-wrap leading-relaxed">
+                      {section.content}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-3 text-xs"
+                      onClick={() => {
+                        navigator.clipboard.writeText(section.content);
+                        toast({ title: `${section.platform} content copied` });
+                      }}
+                    >
+                      Copy to clipboard
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           <Card>
             <CardHeader>
@@ -430,6 +592,92 @@ export default function TaskDetail() {
                     View published post
                   </a>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {showPushToAdsPanel && (
+            <Card className="border-orange-500/30">
+              <CardHeader className="bg-orange-500/5 border-b border-border pb-4">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-orange-500" />
+                  <CardTitle className="text-lg">Push to Ad Platform</CardTitle>
+                </div>
+                <CardDescription>
+                  Create a PAUSED campaign draft on {availableAdPlatforms.map(p => p.label).join(" or ")}. Review and enable in the platform dashboard.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                {availableAdPlatforms.length > 1 && (
+                  <div className="space-y-2">
+                    <Label>Ad Platform</Label>
+                    <Select
+                      value={effectiveAdPlatform}
+                      onValueChange={(v) => setAdPlatform(v as "google_ads" | "meta_ads")}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableAdPlatforms.map(p => (
+                          <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+                  Campaign will be created as <strong>PAUSED</strong>. No spend occurs until you manually enable it in {availableAdPlatforms.find(p => p.value === effectiveAdPlatform)?.label ?? "the ad platform"}.
+                </div>
+
+                <Button
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                  onClick={handlePushToAds}
+                  disabled={pushToAds.isPending}
+                >
+                  {pushToAds.isPending ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Pushing Campaign...</>
+                  ) : (
+                    <><Send className="w-4 h-4 mr-2" /> Push to {availableAdPlatforms.find(p => p.value === effectiveAdPlatform)?.label ?? "Ad Platform"}</>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {isAdPushed && task.adPushedAt && (
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-orange-500" />
+                  <CardTitle className="text-base">Ad Campaign Pushed</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Platform</span>
+                  <span className="font-medium">
+                    {task.adPlatform === "google_ads" ? "Google Ads" : task.adPlatform === "meta_ads" ? "Meta Ads" : task.adPlatform}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Status</span>
+                  <Badge variant="secondary" className="capitalize">{task.adPushStatus}</Badge>
+                </div>
+                {task.adCampaignId && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Campaign ID</span>
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{task.adCampaignId}</code>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Pushed</span>
+                  <span>{format(new Date(task.adPushedAt), "MMM d, h:mm a")}</span>
+                </div>
+                <p className="text-xs text-muted-foreground pt-1">
+                  Campaign is <strong>PAUSED</strong>. Enable it in the platform dashboard when ready to run.
+                </p>
               </CardContent>
             </Card>
           )}

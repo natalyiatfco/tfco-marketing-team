@@ -22,6 +22,8 @@ tags:
     description: Dashboard summary data
   - name: publish
     description: CMS publishing (WordPress / Squarespace)
+  - name: ads
+    description: Ad platform publishing (Google Ads / Meta Ads)
 
 paths:
   /healthz:
@@ -270,6 +272,39 @@ paths:
         "422":
           description: CMS credentials not configured for this property
 
+  /tasks/{id}/push-ads:
+    post:
+      operationId: pushTaskToAds
+      tags: [ads]
+      summary: Push an approved paid ad task output to Google Ads or Meta Ads
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushAdsBody"
+      responses:
+        "200":
+          description: Push result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushAdsResult"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+        "409":
+          description: Task not in pushable state
+        "422":
+          description: Ad platform credentials not configured for this property
+
   # Reviews
   /reviews:
     get:
@@ -391,10 +426,22 @@ components:
           type: ["string", "null"]
         linkedinHandle:
           type: ["string", "null"]
+        googleAdsCustomerId:
+          type: ["string", "null"]
+          description: "Google Ads customer/account ID (e.g. 123-456-7890) — read-only safe field"
+        metaAdsAccountId:
+          type: ["string", "null"]
+          description: "Meta Ads account ID (e.g. act_123456789) — read-only safe field"
         wordpressConfigured:
           type: boolean
         squarespaceConfigured:
           type: boolean
+        googleAdsConfigured:
+          type: boolean
+          description: "True when both Google Ads customer ID and refresh token are stored"
+        metaAdsConfigured:
+          type: boolean
+          description: "True when both Meta Ads account ID and access token are stored"
         createdAt:
           type: string
         updatedAt:
@@ -404,6 +451,8 @@ components:
         - name
         - wordpressConfigured
         - squarespaceConfigured
+        - googleAdsConfigured
+        - metaAdsConfigured
         - createdAt
         - updatedAt
 
@@ -442,6 +491,18 @@ components:
           type: string
         squarespaceCollectionId:
           type: string
+        googleAdsCustomerId:
+          type: string
+          description: "Google Ads customer ID (digits only, e.g. 1234567890)"
+        googleAdsRefreshToken:
+          type: string
+          description: "Google Ads OAuth2 refresh token — write-only, never returned"
+        metaAdsAccountId:
+          type: string
+          description: "Meta Ads account ID without 'act_' prefix, e.g. 123456789"
+        metaAdsAccessToken:
+          type: string
+          description: "Meta Ads access token — write-only, never returned"
       required:
         - name
 
@@ -480,6 +541,16 @@ components:
           type: string
         squarespaceCollectionId:
           type: string
+        googleAdsCustomerId:
+          type: string
+        googleAdsRefreshToken:
+          type: string
+          description: "Write-only — leave blank to keep existing value"
+        metaAdsAccountId:
+          type: string
+        metaAdsAccessToken:
+          type: string
+          description: "Write-only — leave blank to keep existing value"
 
     Agent:
       type: object
@@ -603,6 +674,22 @@ components:
           type: boolean
         squarespaceConfigured:
           type: boolean
+        googleAdsConfigured:
+          type: boolean
+        metaAdsConfigured:
+          type: boolean
+        googleAdsCustomerId:
+          type: ["string", "null"]
+        metaAdsAccountId:
+          type: ["string", "null"]
+        adPushStatus:
+          type: ["string", "null"]
+        adCampaignId:
+          type: ["string", "null"]
+        adPlatform:
+          type: ["string", "null"]
+        adPushedAt:
+          type: ["string", "null"]
         review:
           oneOf:
             - $ref: "#/components/schemas/Review"
@@ -625,6 +712,8 @@ components:
         - status
         - wordpressConfigured
         - squarespaceConfigured
+        - googleAdsConfigured
+        - metaAdsConfigured
         - createdAt
         - updatedAt
 
@@ -811,4 +900,38 @@ components:
         - platform
         - publishStatus
         - publishedAt
+        - message
+
+    PushAdsBody:
+      type: object
+      properties:
+        platform:
+          type: string
+          enum: [google_ads, meta_ads]
+          description: "Target ad platform"
+        overrideCampaignName:
+          type: string
+          description: "Optional override for the parsed campaign name"
+      required:
+        - platform
+
+    PushAdsResult:
+      type: object
+      properties:
+        taskId:
+          type: integer
+        platform:
+          type: string
+        campaignId:
+          type: ["string", "null"]
+        campaignName:
+          type: ["string", "null"]
+        pushedAt:
+          type: string
+        message:
+          type: string
+      required:
+        - taskId
+        - platform
+        - pushedAt
         - message

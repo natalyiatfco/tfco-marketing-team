@@ -31,8 +31,28 @@ export const ListPropertiesResponseItem = zod.object({
   facebookHandle: zod.string().nullish(),
   twitterHandle: zod.string().nullish(),
   linkedinHandle: zod.string().nullish(),
+  googleAdsCustomerId: zod
+    .string()
+    .nullish()
+    .describe(
+      "Google Ads customer\/account ID (e.g. 123-456-7890) — read-only safe field",
+    ),
+  metaAdsAccountId: zod
+    .string()
+    .nullish()
+    .describe(
+      "Meta Ads account ID (e.g. act_123456789) — read-only safe field",
+    ),
   wordpressConfigured: zod.boolean(),
   squarespaceConfigured: zod.boolean(),
+  googleAdsConfigured: zod
+    .boolean()
+    .describe(
+      "True when both Google Ads customer ID and refresh token are stored",
+    ),
+  metaAdsConfigured: zod
+    .boolean()
+    .describe("True when both Meta Ads account ID and access token are stored"),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -58,6 +78,22 @@ export const CreatePropertyBody = zod.object({
   wordpressAppPassword: zod.string().optional(),
   squarespaceApiKey: zod.string().optional(),
   squarespaceCollectionId: zod.string().optional(),
+  googleAdsCustomerId: zod
+    .string()
+    .optional()
+    .describe("Google Ads customer ID (digits only, e.g. 1234567890)"),
+  googleAdsRefreshToken: zod
+    .string()
+    .optional()
+    .describe("Google Ads OAuth2 refresh token — write-only, never returned"),
+  metaAdsAccountId: zod
+    .string()
+    .optional()
+    .describe("Meta Ads account ID without 'act_' prefix, e.g. 123456789"),
+  metaAdsAccessToken: zod
+    .string()
+    .optional()
+    .describe("Meta Ads access token — write-only, never returned"),
 });
 
 /**
@@ -80,8 +116,28 @@ export const GetPropertyResponse = zod.object({
   facebookHandle: zod.string().nullish(),
   twitterHandle: zod.string().nullish(),
   linkedinHandle: zod.string().nullish(),
+  googleAdsCustomerId: zod
+    .string()
+    .nullish()
+    .describe(
+      "Google Ads customer\/account ID (e.g. 123-456-7890) — read-only safe field",
+    ),
+  metaAdsAccountId: zod
+    .string()
+    .nullish()
+    .describe(
+      "Meta Ads account ID (e.g. act_123456789) — read-only safe field",
+    ),
   wordpressConfigured: zod.boolean(),
   squarespaceConfigured: zod.boolean(),
+  googleAdsConfigured: zod
+    .boolean()
+    .describe(
+      "True when both Google Ads customer ID and refresh token are stored",
+    ),
+  metaAdsConfigured: zod
+    .boolean()
+    .describe("True when both Meta Ads account ID and access token are stored"),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -110,6 +166,16 @@ export const UpdatePropertyBody = zod.object({
   wordpressAppPassword: zod.string().optional(),
   squarespaceApiKey: zod.string().optional(),
   squarespaceCollectionId: zod.string().optional(),
+  googleAdsCustomerId: zod.string().optional(),
+  googleAdsRefreshToken: zod
+    .string()
+    .optional()
+    .describe("Write-only — leave blank to keep existing value"),
+  metaAdsAccountId: zod.string().optional(),
+  metaAdsAccessToken: zod
+    .string()
+    .optional()
+    .describe("Write-only — leave blank to keep existing value"),
 });
 
 export const UpdatePropertyResponse = zod.object({
@@ -125,8 +191,28 @@ export const UpdatePropertyResponse = zod.object({
   facebookHandle: zod.string().nullish(),
   twitterHandle: zod.string().nullish(),
   linkedinHandle: zod.string().nullish(),
+  googleAdsCustomerId: zod
+    .string()
+    .nullish()
+    .describe(
+      "Google Ads customer\/account ID (e.g. 123-456-7890) — read-only safe field",
+    ),
+  metaAdsAccountId: zod
+    .string()
+    .nullish()
+    .describe(
+      "Meta Ads account ID (e.g. act_123456789) — read-only safe field",
+    ),
   wordpressConfigured: zod.boolean(),
   squarespaceConfigured: zod.boolean(),
+  googleAdsConfigured: zod
+    .boolean()
+    .describe(
+      "True when both Google Ads customer ID and refresh token are stored",
+    ),
+  metaAdsConfigured: zod
+    .boolean()
+    .describe("True when both Meta Ads account ID and access token are stored"),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -238,6 +324,14 @@ export const GetTaskResponse = zod.object({
   publishedAt: zod.string().nullish(),
   wordpressConfigured: zod.boolean(),
   squarespaceConfigured: zod.boolean(),
+  googleAdsConfigured: zod.boolean(),
+  metaAdsConfigured: zod.boolean(),
+  googleAdsCustomerId: zod.string().nullish(),
+  metaAdsAccountId: zod.string().nullish(),
+  adPushStatus: zod.string().nullish(),
+  adCampaignId: zod.string().nullish(),
+  adPlatform: zod.string().nullish(),
+  adPushedAt: zod.string().nullish(),
   review: zod
     .union([
       zod.object({
@@ -293,6 +387,30 @@ export const PublishTaskResponse = zod.object({
   publishStatus: zod.string(),
   publishUrl: zod.string().nullish(),
   publishedAt: zod.string(),
+  message: zod.string(),
+});
+
+/**
+ * @summary Push an approved paid ad task output to Google Ads or Meta Ads
+ */
+export const PushTaskToAdsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const PushTaskToAdsBody = zod.object({
+  platform: zod.enum(["google_ads", "meta_ads"]).describe("Target ad platform"),
+  overrideCampaignName: zod
+    .string()
+    .optional()
+    .describe("Optional override for the parsed campaign name"),
+});
+
+export const PushTaskToAdsResponse = zod.object({
+  taskId: zod.number(),
+  platform: zod.string(),
+  campaignId: zod.string().nullish(),
+  campaignName: zod.string().nullish(),
+  pushedAt: zod.string(),
   message: zod.string(),
 });
 

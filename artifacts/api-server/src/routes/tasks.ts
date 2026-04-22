@@ -205,6 +205,14 @@ router.get("/tasks/:id", async (req, res): Promise<void> => {
       wpPass: propertiesTable.wordpressAppPassword,
       ssKey: propertiesTable.squarespaceApiKey,
       ssCollId: propertiesTable.squarespaceCollectionId,
+      gaCustomerId: propertiesTable.googleAdsCustomerId,
+      gaRefreshToken: propertiesTable.googleAdsRefreshToken,
+      metaAccountId: propertiesTable.metaAdsAccountId,
+      metaAccessToken: propertiesTable.metaAdsAccessToken,
+      adPushStatus: tasksTable.adPushStatus,
+      adCampaignId: tasksTable.adCampaignId,
+      adPlatform: tasksTable.adPlatform,
+      adPushedAt: tasksTable.adPushedAt,
       createdAt: tasksTable.createdAt,
       updatedAt: tasksTable.updatedAt,
     })
@@ -220,12 +228,16 @@ router.get("/tasks/:id", async (req, res): Promise<void> => {
 
   const [review] = await db.select().from(reviewsTable).where(eq(reviewsTable.taskId, params.data.id));
 
-  const { wpUrl, wpUser, wpPass, ssKey, ssCollId, ...taskData } = task;
+  const { wpUrl, wpUser, wpPass, ssKey, ssCollId, gaCustomerId, gaRefreshToken, metaAccountId, metaAccessToken, ...taskData } = task;
 
   res.json({
     ...taskData,
     wordpressConfigured: !!(wpUrl && wpUser && wpPass),
     squarespaceConfigured: !!(ssKey && ssCollId),
+    googleAdsConfigured: !!(gaCustomerId && gaRefreshToken),
+    metaAdsConfigured: !!(metaAccountId && metaAccessToken),
+    googleAdsCustomerId: gaCustomerId ?? null,
+    metaAdsAccountId: metaAccountId ?? null,
     review: review ?? null,
   });
 });

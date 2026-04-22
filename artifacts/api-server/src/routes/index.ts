@@ -6,6 +6,7 @@ import tasksRouter from "./tasks";
 import reviewsRouter from "./reviews";
 import dashboardRouter from "./dashboard";
 import publishRouter from "./publish";
+import pushAdsRouter from "./push-ads";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(tasksRouter);
 router.use(reviewsRouter);
 router.use(dashboardRouter);
 router.use(publishRouter);
+router.use(pushAdsRouter);
 
 export default router;
