@@ -640,6 +640,21 @@ export const GetPropertyAnalyticsDataResponse = zod.object({
 });
 
 /**
+ * @summary Download analytics data as CSV for a property
+ */
+export const DownloadPropertyAnalyticsCsvParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const downloadPropertyAnalyticsCsvQueryDateRangeDefault = `30days`;
+
+export const DownloadPropertyAnalyticsCsvQueryParams = zod.object({
+  dateRange: zod
+    .enum(["7days", "30days", "90days"])
+    .default(downloadPropertyAnalyticsCsvQueryDateRangeDefault),
+});
+
+/**
  * @summary List all recurring task schedules
  */
 export const ListSchedulesQueryParams = zod.object({
@@ -874,6 +889,15 @@ export const GetDashboardSummaryResponse = zod.object({
       propertyName: zod.string(),
       frequency: zod.string(),
       nextRunAt: zod.string().nullish(),
+    }),
+  ),
+  tasksByProperty: zod.array(
+    zod.object({
+      propertyId: zod.number(),
+      propertyName: zod.string(),
+      count: zod.number(),
+      approved: zod.number(),
+      pending: zod.number(),
     }),
   ),
 });

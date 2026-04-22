@@ -363,6 +363,34 @@ paths:
         "404":
           description: Property not found
 
+  /properties/{id}/analytics-data.csv:
+    get:
+      operationId: downloadPropertyAnalyticsCsv
+      tags: [analytics]
+      summary: Download analytics data as CSV for a property
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: dateRange
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [7days, 30days, 90days]
+            default: 30days
+      responses:
+        "200":
+          description: CSV file with aggregated analytics data from all connected platforms
+          content:
+            text/csv:
+              schema:
+                type: string
+        "404":
+          description: Property not found
+
   # Schedules
   /schedules:
     get:
@@ -1045,6 +1073,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/UpcomingSchedule"
+        tasksByProperty:
+          type: array
+          items:
+            $ref: "#/components/schemas/PropertyTaskCount"
       required:
         - totalTasks
         - pendingApproval
@@ -1054,6 +1086,27 @@ components:
         - tasksThisWeek
         - tasksByAgent
         - upcomingSchedules
+        - tasksByProperty
+
+    PropertyTaskCount:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        propertyName:
+          type: string
+        count:
+          type: integer
+        approved:
+          type: integer
+        pending:
+          type: integer
+      required:
+        - propertyId
+        - propertyName
+        - count
+        - approved
+        - pending
 
     AgentTaskCount:
       type: object

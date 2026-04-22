@@ -314,6 +314,14 @@ export interface UpcomingSchedule {
   nextRunAt?: string | null;
 }
 
+export interface PropertyTaskCount {
+  propertyId: number;
+  propertyName: string;
+  count: number;
+  approved: number;
+  pending: number;
+}
+
 export interface DashboardSummary {
   totalTasks: number;
   pendingApproval: number;
@@ -323,6 +331,7 @@ export interface DashboardSummary {
   tasksThisWeek: number;
   tasksByAgent: AgentTaskCount[];
   upcomingSchedules: UpcomingSchedule[];
+  tasksByProperty: PropertyTaskCount[];
 }
 
 export interface ActivityItem {
@@ -608,6 +617,19 @@ export type GetPropertyAnalyticsDataDateRange =
   (typeof GetPropertyAnalyticsDataDateRange)[keyof typeof GetPropertyAnalyticsDataDateRange];
 
 export const GetPropertyAnalyticsDataDateRange = {
+  "7days": "7days",
+  "30days": "30days",
+  "90days": "90days",
+} as const;
+
+export type DownloadPropertyAnalyticsCsvParams = {
+  dateRange?: DownloadPropertyAnalyticsCsvDateRange;
+};
+
+export type DownloadPropertyAnalyticsCsvDateRange =
+  (typeof DownloadPropertyAnalyticsCsvDateRange)[keyof typeof DownloadPropertyAnalyticsCsvDateRange];
+
+export const DownloadPropertyAnalyticsCsvDateRange = {
   "7days": "7days",
   "30days": "30days",
   "90days": "90days",

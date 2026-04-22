@@ -25,6 +25,7 @@ import type {
   CreateTaskBody,
   DashboardSummary,
   DecideReviewBody,
+  DownloadPropertyAnalyticsCsvParams,
   GetPropertyAnalyticsDataParams,
   GetRecentActivityParams,
   HealthStatus,
@@ -1333,6 +1334,124 @@ export function useGetPropertyAnalyticsData<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetPropertyAnalyticsDataQueryOptions(
+    id,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Download analytics data as CSV for a property
+ */
+export const getDownloadPropertyAnalyticsCsvUrl = (
+  id: number,
+  params?: DownloadPropertyAnalyticsCsvParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/properties/${id}/analytics-data.csv?${stringifiedParams}`
+    : `/api/properties/${id}/analytics-data.csv`;
+};
+
+export const downloadPropertyAnalyticsCsv = async (
+  id: number,
+  params?: DownloadPropertyAnalyticsCsvParams,
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getDownloadPropertyAnalyticsCsvUrl(id, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadPropertyAnalyticsCsvQueryKey = (
+  id: number,
+  params?: DownloadPropertyAnalyticsCsvParams,
+) => {
+  return [
+    `/api/properties/${id}/analytics-data.csv`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getDownloadPropertyAnalyticsCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadPropertyAnalyticsCsv>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  params?: DownloadPropertyAnalyticsCsvParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof downloadPropertyAnalyticsCsv>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getDownloadPropertyAnalyticsCsvQueryKey(id, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadPropertyAnalyticsCsv>>
+  > = ({ signal }) =>
+    downloadPropertyAnalyticsCsv(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadPropertyAnalyticsCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadPropertyAnalyticsCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadPropertyAnalyticsCsv>>
+>;
+export type DownloadPropertyAnalyticsCsvQueryError = ErrorType<void>;
+
+/**
+ * @summary Download analytics data as CSV for a property
+ */
+
+export function useDownloadPropertyAnalyticsCsv<
+  TData = Awaited<ReturnType<typeof downloadPropertyAnalyticsCsv>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  params?: DownloadPropertyAnalyticsCsvParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof downloadPropertyAnalyticsCsv>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadPropertyAnalyticsCsvQueryOptions(
     id,
     params,
     options,

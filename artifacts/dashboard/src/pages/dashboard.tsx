@@ -130,6 +130,45 @@ export default function Dashboard() {
         </Card>
       )}
 
+      {summary.tasksByProperty && summary.tasksByProperty.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Cross-Property Performance Snapshot</CardTitle>
+            <CardDescription>Task output and approval status across all managed properties</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {summary.tasksByProperty.map((prop) => (
+                <div key={prop.propertyId} className="flex items-center gap-4">
+                  <div className="w-40 shrink-0 text-sm font-medium truncate" title={prop.propertyName}>
+                    {prop.propertyName}
+                  </div>
+                  <div className="flex-1 flex items-center gap-2">
+                    <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all"
+                        style={{ width: `${summary.totalTasks > 0 ? Math.max(2, (prop.count / summary.totalTasks) * 100) : 0}%` }}
+                      />
+                    </div>
+                    <span className="font-mono text-sm text-muted-foreground w-8 text-right">{prop.count}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="secondary" className="text-xs tabular-nums">
+                      ✓ {prop.approved}
+                    </Badge>
+                    {prop.pending > 0 && (
+                      <Badge variant="outline" className="text-xs tabular-nums">
+                        ⏳ {prop.pending}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="col-span-1">
           <CardHeader>

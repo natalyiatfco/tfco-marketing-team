@@ -66,6 +66,34 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
     .orderBy(schedulesTable.nextRunAt)
     .limit(5);
 
+  const tasksByPropertyRaw = await db
+    .select({
+      propertyId: propertiesTable.id,
+      propertyName: propertiesTable.name,
+      count: count(tasksTable.id),
+    })
+    .from(propertiesTable)
+    .leftJoin(tasksTable, eq(propertiesTable.id, tasksTable.propertyId))
+    .groupBy(propertiesTable.id, propertiesTable.name)
+    .orderBy(sql`count(${tasksTable.id}) DESC`);
+
+  const approvedByPropertyRaw = await db
+    .select({ propertyId: tasksTable.propertyId, count: count() })
+    .from(reviewsTable)
+    .innerJoin(tasksTable, eq(reviewsTable.taskId, tasksTable.id))
+    .where(eq(reviewsTable.decision, "approved"))
+    .groupBy(tasksTable.propertyId);
+
+  const pendingByPropertyRaw = await db
+    .select({ propertyId: tasksTable.propertyId, count: count() })
+    .from(reviewsTable)
+    .innerJoin(tasksTable, eq(reviewsTable.taskId, tasksTable.id))
+    .where(eq(reviewsTable.decision, "pending"))
+    .groupBy(tasksTable.propertyId);
+
+  const approvedMap = new Map(approvedByPropertyRaw.map((r) => [r.propertyId, r.count]));
+  const pendingMap = new Map(pendingByPropertyRaw.map((r) => [r.propertyId, r.count]));
+
   const summary = {
     totalTasks: totalTasksResult?.count ?? 0,
     pendingApproval: pendingApprovalReviews[0]?.count ?? 0,
@@ -89,6 +117,13 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
       propertyName: s.propertyName,
       frequency: s.frequency,
       nextRunAt: s.nextRunAt?.toISOString() ?? null,
+    })),
+    tasksByProperty: tasksByPropertyRaw.map((p) => ({
+      propertyId: p.propertyId,
+      propertyName: p.propertyName,
+      count: p.count,
+      approved: approvedMap.get(p.propertyId) ?? 0,
+      pending: pendingMap.get(p.propertyId) ?? 0,
     })),
   };
 

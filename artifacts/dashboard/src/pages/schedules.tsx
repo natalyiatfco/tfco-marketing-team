@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useListSchedules,
   useCreateSchedule,
@@ -118,18 +118,35 @@ function ScheduleDialog({
   const form = useForm<ScheduleFormValues>({
     resolver: zodResolver(scheduleSchema),
     defaultValues: {
-      name: initial?.name ?? "",
-      propertyId: initial?.propertyId ?? 0,
-      agentId: initial?.agentId ?? 0,
-      taskType: initial?.taskType ?? "",
-      inputPrompt: initial?.inputPrompt ?? "",
-      frequency: initial?.frequency ?? "daily",
-      dayOfWeek: initial?.dayOfWeek ?? 1,
-      dayOfMonth: initial?.dayOfMonth ?? 1,
-      hour: initial?.hour ?? 9,
-      timezone: initial?.timezone ?? "America/New_York",
+      name: "",
+      propertyId: 0,
+      agentId: 0,
+      taskType: "",
+      inputPrompt: "",
+      frequency: "daily",
+      dayOfWeek: 1,
+      dayOfMonth: 1,
+      hour: 9,
+      timezone: "America/New_York",
     },
   });
+
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        name: initial?.name ?? "",
+        propertyId: initial?.propertyId ?? 0,
+        agentId: initial?.agentId ?? 0,
+        taskType: initial?.taskType ?? "",
+        inputPrompt: initial?.inputPrompt ?? "",
+        frequency: initial?.frequency ?? "daily",
+        dayOfWeek: initial?.dayOfWeek ?? 1,
+        dayOfMonth: initial?.dayOfMonth ?? 1,
+        hour: initial?.hour ?? 9,
+        timezone: initial?.timezone ?? "America/New_York",
+      });
+    }
+  }, [open, initial, form]);
 
   const frequency = form.watch("frequency");
 
