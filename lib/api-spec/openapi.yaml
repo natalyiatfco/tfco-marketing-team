@@ -3,13 +3,24 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Digital Marketing Command Center API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: properties
+    description: Brand property management
+  - name: agents
+    description: AI agent management
+  - name: tasks
+    description: Task management
+  - name: reviews
+    description: Review and approval workflow
+  - name: dashboard
+    description: Dashboard summary data
+
 paths:
   /healthz:
     get:
@@ -24,6 +35,290 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # Properties (Brand Profiles)
+  /properties:
+    get:
+      operationId: listProperties
+      tags: [properties]
+      summary: List all brand properties
+      responses:
+        "200":
+          description: List of properties
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Property"
+    post:
+      operationId: createProperty
+      tags: [properties]
+      summary: Create a brand property
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePropertyBody"
+      responses:
+        "201":
+          description: Created property
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+
+  /properties/{id}:
+    get:
+      operationId: getProperty
+      tags: [properties]
+      summary: Get a property by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Property
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateProperty
+      tags: [properties]
+      summary: Update a property
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePropertyBody"
+      responses:
+        "200":
+          description: Updated property
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteProperty
+      tags: [properties]
+      summary: Delete a property
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # Agents
+  /agents:
+    get:
+      operationId: listAgents
+      tags: [agents]
+      summary: List all AI agents
+      responses:
+        "200":
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Agent"
+
+  /agents/{id}:
+    get:
+      operationId: getAgent
+      tags: [agents]
+      summary: Get an agent by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Agent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agent"
+        "404":
+          description: Not found
+
+  # Tasks
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List tasks with optional filters
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: propertyId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: agentId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create and run a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskBody"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get a task by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Task with full details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskDetail"
+        "404":
+          description: Not found
+
+  # Reviews
+  /reviews:
+    get:
+      operationId: listReviews
+      tags: [reviews]
+      summary: List all reviews pending human approval
+      parameters:
+        - name: decision
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+
+  /reviews/{id}/decide:
+    post:
+      operationId: decideReview
+      tags: [reviews]
+      summary: Approve or reject a task output
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecideReviewBody"
+      responses:
+        "200":
+          description: Updated review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+        "404":
+          description: Not found
+
+  # Dashboard
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary counts and stats
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Get recent task activity feed
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +329,361 @@ components:
       required:
         - status
 
+    Property:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        brandVoice:
+          type: ["string", "null"]
+        tone:
+          type: ["string", "null"]
+        targetAudience:
+          type: ["string", "null"]
+        primaryKeywords:
+          type: ["string", "null"]
+        websiteUrl:
+          type: ["string", "null"]
+        instagramHandle:
+          type: ["string", "null"]
+        facebookHandle:
+          type: ["string", "null"]
+        twitterHandle:
+          type: ["string", "null"]
+        linkedinHandle:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+
+    CreatePropertyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        brandVoice:
+          type: string
+        tone:
+          type: string
+        targetAudience:
+          type: string
+        primaryKeywords:
+          type: string
+        websiteUrl:
+          type: string
+        instagramHandle:
+          type: string
+        facebookHandle:
+          type: string
+        twitterHandle:
+          type: string
+        linkedinHandle:
+          type: string
+      required:
+        - name
+
+    UpdatePropertyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        brandVoice:
+          type: string
+        tone:
+          type: string
+        targetAudience:
+          type: string
+        primaryKeywords:
+          type: string
+        websiteUrl:
+          type: string
+        instagramHandle:
+          type: string
+        facebookHandle:
+          type: string
+        twitterHandle:
+          type: string
+        linkedinHandle:
+          type: string
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+        description:
+          type: string
+        systemPrompt:
+          type: string
+        color:
+          type: string
+        icon:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - role
+        - description
+        - systemPrompt
+        - color
+        - icon
+        - createdAt
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        agentId:
+          type: integer
+        agentName:
+          type: string
+        agentRole:
+          type: string
+        agentColor:
+          type: string
+        agentIcon:
+          type: string
+        propertyId:
+          type: integer
+        propertyName:
+          type: string
+        title:
+          type: string
+        inputPrompt:
+          type: string
+        output:
+          type: ["string", "null"]
+        status:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - agentId
+        - agentName
+        - agentRole
+        - agentColor
+        - agentIcon
+        - propertyId
+        - propertyName
+        - title
+        - inputPrompt
+        - status
+        - createdAt
+        - updatedAt
+
+    TaskDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        agentId:
+          type: integer
+        agentName:
+          type: string
+        agentRole:
+          type: string
+        agentColor:
+          type: string
+        agentIcon:
+          type: string
+        propertyId:
+          type: integer
+        propertyName:
+          type: string
+        title:
+          type: string
+        inputPrompt:
+          type: string
+        output:
+          type: ["string", "null"]
+        status:
+          type: string
+        review:
+          $ref: "#/components/schemas/Review"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - agentId
+        - agentName
+        - agentRole
+        - agentColor
+        - agentIcon
+        - propertyId
+        - propertyName
+        - title
+        - inputPrompt
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateTaskBody:
+      type: object
+      properties:
+        agentId:
+          type: integer
+        propertyId:
+          type: integer
+        title:
+          type: string
+        inputPrompt:
+          type: string
+      required:
+        - agentId
+        - propertyId
+        - title
+        - inputPrompt
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        taskId:
+          type: integer
+        taskTitle:
+          type: ["string", "null"]
+        taskOutput:
+          type: ["string", "null"]
+        taskInputPrompt:
+          type: ["string", "null"]
+        taskStatus:
+          type: ["string", "null"]
+        agentName:
+          type: ["string", "null"]
+        agentColor:
+          type: ["string", "null"]
+        agentIcon:
+          type: ["string", "null"]
+        propertyName:
+          type: ["string", "null"]
+        managerFeedback:
+          type: ["string", "null"]
+        managerScore:
+          type: ["integer", "null"]
+        decision:
+          type: ["string", "null"]
+        humanNotes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - taskId
+        - createdAt
+        - updatedAt
+
+    DecideReviewBody:
+      type: object
+      properties:
+        decision:
+          type: string
+        humanNotes:
+          type: string
+      required:
+        - decision
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalTasks:
+          type: integer
+        pendingApproval:
+          type: integer
+        approved:
+          type: integer
+        rejected:
+          type: integer
+        totalProperties:
+          type: integer
+        tasksThisWeek:
+          type: integer
+        tasksByAgent:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentTaskCount"
+      required:
+        - totalTasks
+        - pendingApproval
+        - approved
+        - rejected
+        - totalProperties
+        - tasksThisWeek
+        - tasksByAgent
+
+    AgentTaskCount:
+      type: object
+      properties:
+        agentId:
+          type: integer
+        agentName:
+          type: string
+        agentColor:
+          type: string
+        agentIcon:
+          type: string
+        count:
+          type: integer
+      required:
+        - agentId
+        - agentName
+        - agentColor
+        - agentIcon
+        - count
+
+    ActivityItem:
+      type: object
+      properties:
+        taskId:
+          type: integer
+        taskTitle:
+          type: string
+        agentName:
+          type: string
+        agentColor:
+          type: string
+        agentIcon:
+          type: string
+        propertyName:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - taskId
+        - taskTitle
+        - agentName
+        - agentColor
+        - agentIcon
+        - propertyName
+        - status
+        - createdAt
