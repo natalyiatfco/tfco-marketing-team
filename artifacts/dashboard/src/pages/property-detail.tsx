@@ -34,16 +34,7 @@ import {
 
 const PROPERTY_TYPES = [
   "Restaurant",
-  "Bar",
-  "Wine Bar",
   "Wine Shop",
-  "Café",
-  "Bakery",
-  "Hotel",
-  "Event Venue",
-  "Food Hall",
-  "Pop-Up",
-  "Other",
 ];
 
 const propertySchema = z.object({
