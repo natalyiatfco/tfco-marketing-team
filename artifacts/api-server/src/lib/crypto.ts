@@ -5,14 +5,9 @@ const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
 const SEPARATOR = ":";
 
-function getKey(): Buffer {
+function getKey(): Buffer | null {
   const raw = process.env.ENCRYPTION_KEY;
-  if (!raw) {
-    throw new Error(
-      "ENCRYPTION_KEY environment variable is not set. " +
-      "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
-    );
-  }
+  if (!raw) return null;
   const buf = Buffer.from(raw, "hex");
   if (buf.length !== 32) {
     throw new Error("ENCRYPTION_KEY must be a 64-character hex string (32 bytes).");
@@ -23,6 +18,10 @@ function getKey(): Buffer {
 export function encryptCredential(plaintext: string): string {
   if (!plaintext) return plaintext;
   const key = getKey();
+  if (!key) {
+    console.warn("[crypto] ENCRYPTION_KEY is not set — storing credential as plain text. Set ENCRYPTION_KEY to enable encryption.");
+    return plaintext;
+  }
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, key, iv);
   const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
@@ -38,6 +37,9 @@ export function decryptCredential(ciphertext: string): string {
   }
   const [ivHex, encryptedHex, tagHex] = parts;
   const key = getKey();
+  if (!key) {
+    throw new Error("ENCRYPTION_KEY is not set — cannot decrypt stored credential.");
+  }
   const iv = Buffer.from(ivHex, "hex");
   const encrypted = Buffer.from(encryptedHex, "hex");
   const tag = Buffer.from(tagHex, "hex");
