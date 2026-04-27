@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and, or, isNull, desc } from "drizzle-orm";
 import { db } from "./index";
 import {
   memoryEntriesTable,
@@ -167,4 +167,82 @@ export async function writeCampaignMemory(params: {
     },
     sourceTaskId: params.taskId,
   });
+}
+
+const MEMORY_LIMITS: Record<string, number> = {
+  brand_voice_sample: 2,
+  rejection_reason: 3,
+  seo_keyword: 20,
+  content_entry: 3,
+  campaign_entry: 2,
+};
+
+const MEMORY_HEADINGS: Record<string, string> = {
+  brand_voice_sample: "Recent Approved Outputs (brand voice reference)",
+  rejection_reason: "Recent Feedback & Rejections to Avoid Repeating",
+  seo_keyword: "SEO Keywords (use where relevant)",
+  content_entry: "Recently Published Content",
+  campaign_entry: "Recent Ad Campaigns",
+};
+
+export async function fetchMemoryContext(
+  propertyId: number,
+  agentRole: string,
+): Promise<string> {
+  const rows = await db
+    .select({
+      memoryType: memoryEntriesTable.memoryType,
+      content: memoryEntriesTable.content,
+    })
+    .from(memoryEntriesTable)
+    .where(
+      and(
+        eq(memoryEntriesTable.propertyId, propertyId),
+        or(
+          eq(memoryEntriesTable.agentRole, agentRole),
+          isNull(memoryEntriesTable.agentRole),
+        ),
+      ),
+    )
+    .orderBy(desc(memoryEntriesTable.createdAt))
+    .limit(120);
+
+  if (rows.length === 0) return "";
+
+  const byType: Record<string, string[]> = {};
+  for (const row of rows) {
+    const type = row.memoryType;
+    if (!byType[type]) byType[type] = [];
+    const limit = MEMORY_LIMITS[type] ?? 3;
+    if (byType[type].length < limit) {
+      byType[type].push(row.content);
+    }
+  }
+
+  const typeOrder = ["rejection_reason", "brand_voice_sample", "seo_keyword", "content_entry", "campaign_entry"];
+  const sections: string[] = [];
+
+  for (const type of typeOrder) {
+    const items = byType[type];
+    if (!items || items.length === 0) continue;
+
+    const heading = MEMORY_HEADINGS[type] ?? type;
+    let formattedItems: string;
+
+    if (type === "seo_keyword") {
+      formattedItems = items.join(", ");
+    } else if (type === "brand_voice_sample") {
+      formattedItems = items
+        .map((s, i) => `[Sample ${i + 1}]\n${s.slice(0, 600)}${s.length > 600 ? "…" : ""}`)
+        .join("\n\n");
+    } else {
+      formattedItems = items
+        .map((s) => `- ${s.slice(0, 300)}${s.length > 300 ? "…" : ""}`)
+        .join("\n");
+    }
+
+    sections.push(`### ${heading}\n${formattedItems}`);
+  }
+
+  return sections.join("\n\n");
 }

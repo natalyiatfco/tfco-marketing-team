@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq, sql } from "drizzle-orm";
-import { db, tasksTable, agentsTable, propertiesTable, reviewsTable } from "@workspace/db";
+import { db, tasksTable, agentsTable, propertiesTable, reviewsTable, fetchMemoryContext } from "@workspace/db";
 import { CreateTaskBody, GetTaskParams, ListTasksQueryParams } from "@workspace/api-zod";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { openai, buildSystemPrompt } from "@workspace/integrations-openai-ai-server";
 import { logger } from "../lib/logger";
 import { fetchAnalyticsData, formatAnalyticsDataForPrompt } from "../lib/analytics-fetcher";
 import { runManagerReview } from "../lib/manager-review";
@@ -109,11 +109,23 @@ router.post("/tasks", async (req, res): Promise<void> => {
         }
       }
 
+      let memoryContext = "";
+      try {
+        memoryContext = await fetchMemoryContext(property.id, agent.role);
+      } catch (memErr) {
+        logger.warn({ memErr, taskId: task.id }, "Memory context fetch failed — proceeding without it");
+      }
+
+      const systemPrompt = buildSystemPrompt(
+        `${agent.systemPrompt}\n\n${brandContext}`,
+        memoryContext,
+      );
+
       const response = await openai.chat.completions.create({
         model: "gpt-5.1",
         max_completion_tokens: 4096,
         messages: [
-          { role: "system", content: `${agent.systemPrompt}\n\n${brandContext}` },
+          { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
       });
