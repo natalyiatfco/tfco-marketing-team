@@ -11,7 +11,7 @@ vi.mock("@workspace/db", () => {
     insert: vi.fn(),
   };
 
-  return { db: mockDb, agentsTable, tasksTable, reviewsTable };
+  return { db: mockDb, agentsTable, tasksTable, reviewsTable, fetchMemoryContext: vi.fn().mockResolvedValue("") };
 });
 
 vi.mock("drizzle-orm", () => ({
@@ -26,6 +26,7 @@ vi.mock("@workspace/integrations-openai-ai-server", () => ({
       },
     },
   },
+  buildSystemPrompt: vi.fn((base: string) => base),
 }));
 
 vi.mock("./logger", () => ({
@@ -91,7 +92,7 @@ describe("runManagerReview", () => {
         choices: [{ message: { content: "Score: 8\nGreat work overall." } }],
       });
 
-      await runManagerReview(42, "Agent output", "Blog Agent", "writer", "Write a blog post");
+      await runManagerReview(42, 1, "Agent output", "Blog Agent", "writer", "Write a blog post");
 
       expect(insertValuesFn).toHaveBeenCalledOnce();
       const insertCall = insertValuesFn.mock.calls[0][0];
@@ -116,7 +117,7 @@ describe("runManagerReview", () => {
         choices: [{ message: { content: feedbackText } }],
       });
 
-      await runManagerReview(1, "output", "Agent", "role", "task");
+      await runManagerReview(1, 1, "output", "Agent", "role", "task");
 
       expect(valuesFn).toHaveBeenCalledWith(
         expect.objectContaining({ managerFeedback: feedbackText })
@@ -134,7 +135,7 @@ describe("runManagerReview", () => {
         choices: [{ message: { content: feedback } }],
       });
 
-      await runManagerReview(1, "output", "Agent", "role", "task");
+      await runManagerReview(1, 1, "output", "Agent", "role", "task");
       return valuesFn.mock.calls[0][0];
     }
 
@@ -174,7 +175,7 @@ describe("runManagerReview", () => {
       makeSelectChain([]);
       makeUpdateChain();
 
-      await runManagerReview(99, "output", "Agent", "role", "task");
+      await runManagerReview(99, 1, "output", "Agent", "role", "task");
 
       expect(mockDb.insert).not.toHaveBeenCalled();
     });
@@ -183,7 +184,7 @@ describe("runManagerReview", () => {
       makeSelectChain([]);
       const { setFn } = makeUpdateChain();
 
-      await runManagerReview(99, "output", "Agent", "role", "task");
+      await runManagerReview(99, 1, "output", "Agent", "role", "task");
 
       expect(setFn).toHaveBeenCalledWith(
         expect.objectContaining({ status: "failed" })
@@ -194,7 +195,7 @@ describe("runManagerReview", () => {
       makeSelectChain([]);
       makeUpdateChain();
 
-      await runManagerReview(99, "output", "Agent", "role", "task");
+      await runManagerReview(99, 1, "output", "Agent", "role", "task");
 
       expect(mockCreate).not.toHaveBeenCalled();
     });
@@ -207,7 +208,7 @@ describe("runManagerReview", () => {
 
       mockCreate.mockRejectedValue(new Error("OpenAI timeout"));
 
-      await runManagerReview(7, "output", "Agent", "role", "task");
+      await runManagerReview(7, 1, "output", "Agent", "role", "task");
 
       expect(setFn).toHaveBeenCalledWith(
         expect.objectContaining({ status: "failed" })
@@ -220,7 +221,7 @@ describe("runManagerReview", () => {
 
       mockCreate.mockRejectedValue(new Error("OpenAI timeout"));
 
-      await runManagerReview(7, "output", "Agent", "role", "task");
+      await runManagerReview(7, 1, "output", "Agent", "role", "task");
 
       expect(mockDb.insert).not.toHaveBeenCalled();
     });
@@ -232,7 +233,7 @@ describe("runManagerReview", () => {
       mockCreate.mockRejectedValue(new Error("Network error"));
 
       await expect(
-        runManagerReview(7, "output", "Agent", "role", "task")
+        runManagerReview(7, 1, "output", "Agent", "role", "task")
       ).resolves.toBeUndefined();
     });
   });

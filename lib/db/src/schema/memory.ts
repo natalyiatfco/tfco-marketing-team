@@ -7,6 +7,7 @@ import { reviewsTable } from "./reviews";
 export const MEMORY_TYPES = [
   "brand_voice_sample",
   "rejection_reason",
+  "revision_delta",
   "campaign_entry",
   "content_entry",
   "seo_keyword",
@@ -23,6 +24,7 @@ export const memoryEntriesTable = pgTable("memory_entries", {
   memoryType: text("memory_type").notNull(),
   content: text("content").notNull(),
   metadata: jsonb("metadata"),
+  importanceScore: integer("importance_score").default(5),
   sourceTaskId: integer("source_task_id").references(() => tasksTable.id, {
     onDelete: "set null",
   }),
@@ -30,6 +32,7 @@ export const memoryEntriesTable = pgTable("memory_entries", {
     onDelete: "set null",
   }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
 });
 
 export const memoryEmbeddingsTable = pgTable(

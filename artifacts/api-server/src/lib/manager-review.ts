@@ -1,10 +1,11 @@
 import { eq } from "drizzle-orm";
-import { db, agentsTable, tasksTable, reviewsTable } from "@workspace/db";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { db, agentsTable, tasksTable, reviewsTable, fetchMemoryContext } from "@workspace/db";
+import { openai, buildSystemPrompt } from "@workspace/integrations-openai-ai-server";
 import { logger } from "./logger";
 
 export async function runManagerReview(
   taskId: number,
+  propertyId: number,
   agentOutput: string,
   agentName: string,
   agentRole: string,
@@ -32,12 +33,21 @@ Provide a structured review with:
 
 Be concise and actionable. Format as plain text.`;
 
+  let managerMemoryContext = "";
+  try {
+    managerMemoryContext = await fetchMemoryContext(propertyId, "manager");
+  } catch (memErr) {
+    logger.warn({ memErr, taskId }, "Manager memory context fetch failed — proceeding without it");
+  }
+
+  const systemPrompt = buildSystemPrompt(managerAgent.systemPrompt, managerMemoryContext);
+
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-5.1",
       max_completion_tokens: 1024,
       messages: [
-        { role: "system", content: managerAgent.systemPrompt },
+        { role: "system", content: systemPrompt },
         { role: "user", content: reviewPrompt },
       ],
     });

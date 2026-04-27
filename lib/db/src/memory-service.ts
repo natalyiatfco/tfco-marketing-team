@@ -1,4 +1,4 @@
-import { eq, and, or, isNull, desc } from "drizzle-orm";
+import { eq, and, or, isNull, desc, gt } from "drizzle-orm";
 import { db } from "./index";
 import {
   memoryEntriesTable,
@@ -15,6 +15,8 @@ export interface WriteMemoryParams {
   memoryType: MemoryType;
   content: string;
   metadata?: Record<string, unknown> | null;
+  importanceScore?: number;
+  expiresAt?: Date | null;
   sourceTaskId?: number | null;
   sourceReviewId?: number | null;
 }
@@ -26,6 +28,8 @@ export async function writeMemory(params: WriteMemoryParams): Promise<void> {
     memoryType: params.memoryType,
     content: params.content,
     metadata: params.metadata ?? null,
+    importanceScore: params.importanceScore ?? 5,
+    expiresAt: params.expiresAt ?? null,
     sourceTaskId: params.sourceTaskId ?? null,
     sourceReviewId: params.sourceReviewId ?? null,
   };
@@ -59,6 +63,10 @@ function extractKeywords(output: string): string[] {
   return keywords.slice(0, 20);
 }
 
+function monthsFromNow(months: number): Date {
+  return new Date(Date.now() + months * 30 * 24 * 60 * 60 * 1000);
+}
+
 export async function consolidateMemoryFromReview(reviewId: number): Promise<void> {
   const [row] = await db
     .select({
@@ -69,6 +77,7 @@ export async function consolidateMemoryFromReview(reviewId: number): Promise<voi
       humanNotes: reviewsTable.humanNotes,
       taskId: tasksTable.id,
       taskOutput: tasksTable.output,
+      taskInputPrompt: tasksTable.inputPrompt,
       propertyId: tasksTable.propertyId,
       agentRole: agentsTable.role,
     })
@@ -91,6 +100,7 @@ export async function consolidateMemoryFromReview(reviewId: number): Promise<voi
       ...base,
       memoryType: "brand_voice_sample",
       content: row.taskOutput,
+      importanceScore: 7,
       metadata: { agentRole: row.agentRole },
     });
 
@@ -101,11 +111,13 @@ export async function consolidateMemoryFromReview(reviewId: number): Promise<voi
           ...base,
           memoryType: "seo_keyword",
           content: kw,
+          importanceScore: 6,
+          expiresAt: monthsFromNow(6),
           metadata: { agentRole: row.agentRole },
         });
       }
     }
-  } else if (row.decision === "rejected" || row.decision === "revision_requested") {
+  } else if (row.decision === "rejected") {
     const parts: string[] = [];
     if (row.managerFeedback) parts.push(`Manager feedback: ${row.managerFeedback}`);
     if (row.humanNotes) parts.push(`Human notes: ${row.humanNotes}`);
@@ -115,10 +127,29 @@ export async function consolidateMemoryFromReview(reviewId: number): Promise<voi
       ...base,
       memoryType: "rejection_reason",
       content,
+      importanceScore: 9,
       metadata: {
         decision: row.decision,
         managerScore: row.managerScore ?? null,
         agentRole: row.agentRole,
+      },
+    });
+  } else if (row.decision === "revision_requested" && row.taskOutput) {
+    const feedbackParts: string[] = [];
+    if (row.managerFeedback) feedbackParts.push(`Manager feedback: ${row.managerFeedback}`);
+    if (row.humanNotes) feedbackParts.push(`Human notes: ${row.humanNotes}`);
+    const feedback = feedbackParts.join("\n\n") || "No feedback provided.";
+
+    await writeMemory({
+      ...base,
+      memoryType: "revision_delta",
+      content: `Original output:\n${row.taskOutput}\n\nRevision requested:\n${feedback}`,
+      importanceScore: 8,
+      metadata: {
+        decision: row.decision,
+        managerScore: row.managerScore ?? null,
+        agentRole: row.agentRole,
+        taskPrompt: row.taskInputPrompt,
       },
     });
   }
@@ -138,6 +169,7 @@ export async function writeContentMemory(params: {
     agentRole: params.agentRole,
     memoryType: "content_entry",
     content: `${params.title}: ${params.output.slice(0, 500)}`,
+    importanceScore: 6,
     metadata: {
       platform: params.platform,
       publishUrl: params.publishUrl,
@@ -160,6 +192,8 @@ export async function writeCampaignMemory(params: {
     agentRole: "paid_specialist",
     memoryType: "campaign_entry",
     content: params.outputSummary,
+    importanceScore: 7,
+    expiresAt: monthsFromNow(3),
     metadata: {
       platform: params.platform,
       adCampaignId: params.campaignId,
@@ -172,14 +206,16 @@ export async function writeCampaignMemory(params: {
 const MEMORY_LIMITS: Record<string, number> = {
   brand_voice_sample: 2,
   rejection_reason: 3,
+  revision_delta: 3,
   seo_keyword: 20,
   content_entry: 3,
   campaign_entry: 2,
 };
 
 const MEMORY_HEADINGS: Record<string, string> = {
-  brand_voice_sample: "Recent Approved Outputs (brand voice reference)",
-  rejection_reason: "Recent Feedback & Rejections to Avoid Repeating",
+  rejection_reason: "What To Avoid — Human Feedback (do not repeat these mistakes)",
+  revision_delta: "Revision Patterns — What the client asked to change",
+  brand_voice_sample: "Approved Outputs (brand voice reference)",
   seo_keyword: "SEO Keywords (use where relevant)",
   content_entry: "Recently Published Content",
   campaign_entry: "Recent Ad Campaigns",
@@ -189,10 +225,13 @@ export async function fetchMemoryContext(
   propertyId: number,
   agentRole: string,
 ): Promise<string> {
+  const now = new Date();
+
   const rows = await db
     .select({
       memoryType: memoryEntriesTable.memoryType,
       content: memoryEntriesTable.content,
+      importanceScore: memoryEntriesTable.importanceScore,
     })
     .from(memoryEntriesTable)
     .where(
@@ -202,9 +241,16 @@ export async function fetchMemoryContext(
           eq(memoryEntriesTable.agentRole, agentRole),
           isNull(memoryEntriesTable.agentRole),
         ),
+        or(
+          isNull(memoryEntriesTable.expiresAt),
+          gt(memoryEntriesTable.expiresAt, now),
+        ),
       ),
     )
-    .orderBy(desc(memoryEntriesTable.createdAt))
+    .orderBy(
+      desc(memoryEntriesTable.importanceScore),
+      desc(memoryEntriesTable.createdAt),
+    )
     .limit(120);
 
   if (rows.length === 0) return "";
@@ -219,7 +265,14 @@ export async function fetchMemoryContext(
     }
   }
 
-  const typeOrder = ["rejection_reason", "brand_voice_sample", "seo_keyword", "content_entry", "campaign_entry"];
+  const typeOrder = [
+    "rejection_reason",
+    "revision_delta",
+    "brand_voice_sample",
+    "seo_keyword",
+    "content_entry",
+    "campaign_entry",
+  ];
   const sections: string[] = [];
 
   for (const type of typeOrder) {

@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq, lte, and, sql } from "drizzle-orm";
-import { db, schedulesTable, agentsTable, propertiesTable, tasksTable } from "@workspace/db";
+import { db, schedulesTable, agentsTable, propertiesTable, tasksTable, fetchMemoryContext } from "@workspace/db";
 import { CreateScheduleBody, UpdateScheduleBody, GetScheduleParams, ListSchedulesQueryParams } from "@workspace/api-zod";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { openai, buildSystemPrompt } from "@workspace/integrations-openai-ai-server";
 import { logger } from "../lib/logger";
 import { fetchAnalyticsData, formatAnalyticsDataForPrompt } from "../lib/analytics-fetcher";
 import type { Property, Agent } from "@workspace/db";
@@ -303,11 +303,24 @@ async function dispatchScheduledTask(
 
   setImmediate(async () => {
     try {
+      let memoryContext = "";
+      try {
+        memoryContext = await fetchMemoryContext(property.id, agent.role);
+      } catch (memErr) {
+        logger.warn({ memErr, taskId: task.id }, "Memory context fetch failed for scheduled task — proceeding without it");
+      }
+
+      const systemPrompt = buildSystemPrompt(
+        `${agent.systemPrompt}\n\n${brandContext}`,
+        memoryContext,
+        agent.role,
+      );
+
       const response = await openai.chat.completions.create({
         model: "gpt-5.1",
         max_completion_tokens: 4096,
         messages: [
-          { role: "system", content: `${agent.systemPrompt}\n\n${brandContext}` },
+          { role: "system", content: systemPrompt },
           { role: "user", content: promptWithContext },
         ],
       });
@@ -318,7 +331,7 @@ async function dispatchScheduledTask(
         .set({ output, status: "reviewing", updatedAt: new Date() })
         .where(eq(tasksTable.id, task.id));
 
-      await runManagerReview(task.id, output, agent.name, agent.role, task.title);
+      await runManagerReview(task.id, property.id, output, agent.name, agent.role, task.title);
     } catch (err) {
       logger.error({ err, taskId: task.id }, "Scheduled task execution failed");
       await db.update(tasksTable)

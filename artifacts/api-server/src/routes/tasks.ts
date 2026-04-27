@@ -119,6 +119,7 @@ router.post("/tasks", async (req, res): Promise<void> => {
       const systemPrompt = buildSystemPrompt(
         `${agent.systemPrompt}\n\n${brandContext}`,
         memoryContext,
+        agent.role,
       );
 
       const response = await openai.chat.completions.create({
@@ -136,7 +137,7 @@ router.post("/tasks", async (req, res): Promise<void> => {
         .set({ output, status: "reviewing", updatedAt: new Date() })
         .where(eq(tasksTable.id, task.id));
 
-      await runManagerReview(task.id, output, agent.name, agent.role, task.title);
+      await runManagerReview(task.id, property.id, output, agent.name, agent.role, task.title);
     } catch (err) {
       logger.error({ err, taskId: task.id }, "Task execution failed");
       await db.update(tasksTable)
