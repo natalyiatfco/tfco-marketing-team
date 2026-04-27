@@ -52,9 +52,9 @@ describe("encryptCredential", () => {
     expect(encryptCredential("")).toBe("");
   });
 
-  it("throws when ENCRYPTION_KEY is not set", () => {
+  it("returns plaintext when ENCRYPTION_KEY is not set (graceful pass-through)", () => {
     withKey(undefined, () => {
-      expect(() => encryptCredential("hello")).toThrow("ENCRYPTION_KEY environment variable is not set");
+      expect(encryptCredential("hello")).toBe("hello");
     });
   });
 

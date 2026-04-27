@@ -109,39 +109,46 @@ export default function PropertyDetail() {
 
   const logoUrl = form.watch("logoUrl");
 
+  function buildFormValues(p: NonNullable<typeof property>): PropertyFormValues {
+    return {
+      name: p.name,
+      description: p.description || "",
+      brandVoice: p.brandVoice || "",
+      tone: p.tone || "",
+      targetAudience: p.targetAudience || "",
+      primaryKeywords: p.primaryKeywords || "",
+      websiteUrl: p.websiteUrl || "",
+      instagramHandle: p.instagramHandle || "",
+      facebookHandle: p.facebookHandle || "",
+      twitterHandle: p.twitterHandle || "",
+      linkedinHandle: p.linkedinHandle || "",
+      wordpressUrl: "",
+      wordpressUsername: "",
+      wordpressAppPassword: "",
+      squarespaceApiKey: "",
+      squarespaceCollectionId: "",
+      googleAdsCustomerId: p.googleAdsCustomerId || "",
+      googleAdsRefreshToken: "",
+      metaAdsAccountId: p.metaAdsAccountId || "",
+      metaAdsAccessToken: "",
+      metaAdPageId: p.metaAdPageId || "",
+      hubspotPortalId: p.hubspotPortalId || "",
+      hubspotApiKey: "",
+      openedAt: p.openedAt ? new Date(p.openedAt).toISOString().split("T")[0] : "",
+      propertyType: p.propertyType || "",
+      logoUrl: p.logoUrl || "",
+      resyUrl: p.resyUrl || "",
+    };
+  }
+
+  // Populate the form when data first loads. Skip if the user has unsaved
+  // edits so background refetches don't wipe changes in progress.
   useEffect(() => {
-    if (property) {
-      form.reset({
-        name: property.name,
-        description: property.description || "",
-        brandVoice: property.brandVoice || "",
-        tone: property.tone || "",
-        targetAudience: property.targetAudience || "",
-        primaryKeywords: property.primaryKeywords || "",
-        websiteUrl: property.websiteUrl || "",
-        instagramHandle: property.instagramHandle || "",
-        facebookHandle: property.facebookHandle || "",
-        twitterHandle: property.twitterHandle || "",
-        linkedinHandle: property.linkedinHandle || "",
-        wordpressUrl: "",
-        wordpressUsername: "",
-        wordpressAppPassword: "",
-        squarespaceApiKey: "",
-        squarespaceCollectionId: "",
-        googleAdsCustomerId: property.googleAdsCustomerId || "",
-        googleAdsRefreshToken: "",
-        metaAdsAccountId: property.metaAdsAccountId || "",
-        metaAdsAccessToken: "",
-        metaAdPageId: property.metaAdPageId || "",
-        hubspotPortalId: property.hubspotPortalId || "",
-        hubspotApiKey: "",
-        openedAt: property.openedAt ? new Date(property.openedAt).toISOString().split("T")[0] : "",
-        propertyType: property.propertyType || "",
-        logoUrl: property.logoUrl || "",
-        resyUrl: property.resyUrl || "",
-      });
+    if (property && !form.formState.isDirty) {
+      form.reset(buildFormValues(property));
     }
-  }, [property, form]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [property]);
 
   function onSubmit(values: PropertyFormValues) {
     const cleanedValues = Object.fromEntries(
@@ -152,8 +159,11 @@ export default function PropertyDetail() {
       id,
       data: cleanedValues
     }, {
-      onSuccess: () => {
-        toast({ title: "Property Updated" });
+      onSuccess: (saved) => {
+        toast({ title: "Property saved" });
+        // Reset with server response so dirty state clears and credential
+        // fields (which are stripped from the response) go back to empty.
+        form.reset(buildFormValues(saved as NonNullable<typeof property>));
         queryClient.invalidateQueries({ queryKey: getGetPropertyQueryKey(id) });
         queryClient.invalidateQueries({ queryKey: getListPropertiesQueryKey() });
       },
@@ -300,7 +310,7 @@ export default function PropertyDetail() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Property Type</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <Select key={field.value || "empty"} onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select type..." />
@@ -622,7 +632,7 @@ export default function PropertyDetail() {
           </Card>
 
           <div className="flex justify-end gap-4">
-            <Button type="submit" disabled={updateProperty.isPending || !form.formState.isDirty}>
+            <Button type="submit" disabled={updateProperty.isPending}>
               {updateProperty.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </div>
