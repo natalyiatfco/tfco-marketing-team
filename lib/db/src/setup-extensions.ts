@@ -11,7 +11,11 @@ await client.connect();
 
 try {
   await client.query("CREATE EXTENSION IF NOT EXISTS vector;");
-  console.log("[setup-extensions] pgvector extension ready");
+  const { rows } = await client.query<{ extversion: string }>(
+    "SELECT extversion FROM pg_extension WHERE extname = 'vector'",
+  );
+  const version = rows[0]?.extversion ?? "unknown";
+  console.log(`[setup-extensions] pgvector extension ready (v${version})`);
 } finally {
   await client.end();
 }

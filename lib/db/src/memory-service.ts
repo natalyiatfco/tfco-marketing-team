@@ -65,6 +65,7 @@ export async function consolidateMemoryFromReview(reviewId: number): Promise<voi
       reviewId: reviewsTable.id,
       decision: reviewsTable.decision,
       managerFeedback: reviewsTable.managerFeedback,
+      managerScore: reviewsTable.managerScore,
       humanNotes: reviewsTable.humanNotes,
       taskId: tasksTable.id,
       taskOutput: tasksTable.output,
@@ -116,7 +117,7 @@ export async function consolidateMemoryFromReview(reviewId: number): Promise<voi
       content,
       metadata: {
         decision: row.decision,
-        managerScore: null,
+        managerScore: row.managerScore ?? null,
         agentRole: row.agentRole,
       },
     });
