@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq, sql, isNull } from "drizzle-orm";
-import { db, reviewsTable, tasksTable, agentsTable, propertiesTable } from "@workspace/db";
+import { db, reviewsTable, tasksTable, agentsTable, propertiesTable, consolidateMemoryFromReview } from "@workspace/db";
 import { DecideReviewParams, DecideReviewBody, ListReviewsQueryParams } from "@workspace/api-zod";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -85,6 +86,14 @@ router.post("/reviews/:id/decide", async (req, res): Promise<void> => {
     .where(eq(tasksTable.id, review.taskId));
 
   res.json(review);
+
+  setImmediate(async () => {
+    try {
+      await consolidateMemoryFromReview(review.id);
+    } catch (err) {
+      logger.warn({ err, reviewId: review.id }, "Memory consolidation failed — non-fatal");
+    }
+  });
 });
 
 export default router;

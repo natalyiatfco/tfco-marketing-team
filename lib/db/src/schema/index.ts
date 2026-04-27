@@ -3,3 +3,5 @@ export * from "./agents";
 export * from "./tasks";
 export * from "./reviews";
 export * from "./schedules";
+export * from "./memory";
+export * from "./relations";

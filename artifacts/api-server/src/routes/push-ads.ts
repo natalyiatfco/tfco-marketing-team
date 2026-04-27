@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, tasksTable, propertiesTable, agentsTable, reviewsTable } from "@workspace/db";
+import { db, tasksTable, propertiesTable, agentsTable, reviewsTable, writeCampaignMemory } from "@workspace/db";
 import { PushTaskToAdsParams, PushTaskToAdsBody } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 import { decryptCredential, isEncrypted } from "../lib/crypto";
@@ -630,6 +630,25 @@ router.post("/tasks/:id/push-ads", async (req, res): Promise<void> => {
       .where(eq(tasksTable.id, task.id));
 
     logger.info({ taskId: task.id, platform, campaignId }, "Task pushed to ad platform");
+
+    setImmediate(async () => {
+      try {
+        const output = task.output ?? "";
+        const summary = campaignName
+          ? `Campaign "${campaignName}" on ${platform}: ${output.slice(0, 400)}`
+          : output.slice(0, 500);
+        await writeCampaignMemory({
+          propertyId: task.propertyId,
+          taskId: task.id,
+          platform,
+          campaignId: campaignId || null,
+          campaignName: campaignName || null,
+          outputSummary: summary,
+        });
+      } catch (err) {
+        logger.warn({ err, taskId: task.id }, "Campaign memory write failed — non-fatal");
+      }
+    });
 
     res.json({
       taskId: task.id,

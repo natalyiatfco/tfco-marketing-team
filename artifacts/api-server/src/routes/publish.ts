@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, tasksTable, propertiesTable, agentsTable, reviewsTable } from "@workspace/db";
+import { db, tasksTable, propertiesTable, agentsTable, reviewsTable, writeContentMemory } from "@workspace/db";
 import { PublishTaskParams, PublishTaskBody } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 import { decryptCredential, isEncrypted } from "../lib/crypto";
@@ -180,6 +180,22 @@ router.post("/tasks/:id/publish", async (req, res): Promise<void> => {
       .where(eq(tasksTable.id, task.id));
 
     logger.info({ taskId: task.id, platform, publishStatus }, "Task published to CMS");
+
+    setImmediate(async () => {
+      try {
+        await writeContentMemory({
+          propertyId: task.propertyId,
+          agentRole: task.agentRole,
+          taskId: task.id,
+          title,
+          output: task.output!,
+          platform,
+          publishUrl,
+        });
+      } catch (err) {
+        logger.warn({ err, taskId: task.id }, "Content memory write failed — non-fatal");
+      }
+    });
 
     res.json({
       taskId: task.id,

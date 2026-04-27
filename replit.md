@@ -30,7 +30,8 @@ workspace/
 │   ├── api-client-react/    # React Query hooks (auto-generated)
 │   ├── api-zod/             # Zod schemas (auto-generated)
 │   ├── db/                  # Drizzle schema + migrations
-│   │   └── src/schema/      # properties, agents, tasks, reviews tables
+│   │   ├── src/schema/      # properties, agents, tasks, reviews, memory tables
+│   │   └── src/memory-service.ts  # writeMemory, consolidateMemoryFromReview, writeContentMemory, writeCampaignMemory
 │   └── integrations-openai-ai-server/  # OpenAI client (Replit-managed auth)
 ```
 
@@ -121,6 +122,32 @@ Using `gpt-5.1` with `max_completion_tokens: 4096` for agents, 1024 for manager 
 - Orval's Zod mode is set to `mode: "single"` to avoid duplicate exports
 - Response Zod schemas are NOT used to parse API responses (Date objects from DB conflict with `type: string`); they serve as documentation/type reference only
 - Input validation (request bodies, params, query) uses generated Zod schemas
+
+## Agent Memory Layer (Task #33 — write side)
+
+Per-property persistent memory so each LLM call accumulates context from prior interactions.
+
+### Tables
+- `memory_entries` — stores text content with type, property FK, optional agent role, FKs to task/review
+- `memory_embeddings` — stores `vector(1536)` embeddings with HNSW cosine index; FK to `memory_entries`
+
+### Memory Types
+| Type | Trigger |
+|------|---------|
+| `brand_voice_sample` | Review decision = approved |
+| `rejection_reason` | Review decision = rejected or revision_requested |
+| `seo_keyword` | Approved seo_specialist output (extracted keywords) |
+| `content_entry` | CMS publish success (publish.ts) |
+| `campaign_entry` | Ad platform push success (push-ads.ts) |
+
+### Write-Side Functions (lib/db/src/memory-service.ts)
+- `writeMemory(params)` — insert a single memory entry
+- `consolidateMemoryFromReview(reviewId)` — called via `setImmediate` after `/reviews/:id/decide`
+- `writeContentMemory(params)` — called after CMS publish
+- `writeCampaignMemory(params)` — called after ad platform push
+
+### Drizzle Relations
+`lib/db/src/schema/relations.ts` defines full relation graph for all tables (used by Task #34 read paths).
 
 ## Workflows
 
