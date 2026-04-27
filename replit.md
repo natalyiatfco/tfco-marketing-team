@@ -77,6 +77,15 @@ workspace/
 8. For approved content/SEO tasks: POST /tasks/:id/publish → pushes to WordPress or Squarespace
 9. For approved paid_specialist tasks: POST /tasks/:id/push-ads → pushes PAUSED campaign to Google Ads or Meta Ads
 
+## Property Schema — Notable Fields
+
+Beyond brand/social fields, properties carry:
+- `location` (text) — short location descriptor, e.g. "Sparks, Baltimore County, MD"
+- `fullAddress` (text) — full mailing address, e.g. "14833 York Rd, Sparks Glencoe, MD 21152"
+- `openedAt` (timestamp) — date the property opened
+- `propertyType` (text) — e.g. "Restaurant", "Wine Shop"
+- `logoUrl` (text) — base64 data URL or hosted URL
+
 ## Ad Platform Integration (Task #3)
 
 ### Properties — New Ad Fields
@@ -123,22 +132,25 @@ Using `gpt-5.1` with `max_completion_tokens: 4096` for agents, 1024 for manager 
 - Response Zod schemas are NOT used to parse API responses (Date objects from DB conflict with `type: string`); they serve as documentation/type reference only
 - Input validation (request bodies, params, query) uses generated Zod schemas
 
-## Agent Memory Layer (Task #33 — write side)
+## Agent Memory Layer (Tasks #33 + #34 — complete)
 
-Per-property persistent memory so each LLM call accumulates context from prior interactions.
+Per-property persistent memory so each LLM call accumulates context from prior interactions. Both the write side (consolidation after decisions/publish/push) and the read side (context injection into every LLM call) are fully wired.
 
 ### Tables
-- `memory_entries` — stores text content with type, property FK, optional agent role, FKs to task/review
-- `memory_embeddings` — stores `vector(1536)` embeddings with HNSW cosine index; FK to `memory_entries`
+- `memory_entries` — text content with `memoryType`, `propertyId`, optional `agentRole`, `importanceScore` (int, default 5), optional `expiresAt`, FKs to task/review
+- `memory_embeddings` — `vector(1536)` embeddings with HNSW cosine index; FK to `memory_entries`
 
 ### Memory Types
-| Type | Trigger |
-|------|---------|
-| `brand_voice_sample` | Review decision = approved |
-| `rejection_reason` | Review decision = rejected or revision_requested |
-| `seo_keyword` | Approved seo_specialist output (extracted keywords) |
-| `content_entry` | CMS publish success (publish.ts) |
-| `campaign_entry` | Ad platform push success (push-ads.ts) |
+| Type | Trigger | importanceScore | TTL |
+|------|---------|-----------------|-----|
+| `rejection_reason` | Review decision = `rejected` | 9 | none |
+| `revision_delta` | Review decision = `revision_requested` | 8 | none |
+| `brand_voice_sample` | Review decision = `approved` | 7 | none |
+| `seo_keyword` | Approved `seo_specialist` output (extracted keywords) | 6 | 6 months |
+| `content_entry` | CMS publish success (publish.ts) | 5 | none |
+| `campaign_entry` | Ad platform push success (push-ads.ts) | 5 | 3 months |
+
+`rejection_reason` and `revision_delta` are distinct: `rejection_reason` stores feedback only; `revision_delta` stores `"Original output:\n{output}\n\nRevision requested:\n{feedback}"` so agents see what specifically changed, not just that something was wrong.
 
 ### Write-Side Functions (lib/db/src/memory-service.ts)
 - `writeMemory(params)` — insert a single memory entry
@@ -146,8 +158,20 @@ Per-property persistent memory so each LLM call accumulates context from prior i
 - `writeContentMemory(params)` — called after CMS publish
 - `writeCampaignMemory(params)` — called after ad platform push
 
+### Read-Side Functions
+- `fetchMemoryContext(propertyId, agentRole)` — queries `memory_entries` for the property + role, filters expired entries, orders by `importanceScore DESC` then `createdAt DESC`, caps per type (rejection_reason: 3, revision_delta: 3, brand_voice_sample: 2, seo_keyword: 20, content_entry: 3, campaign_entry: 2), returns a formatted multi-section string
+- `buildSystemPrompt(basePrompt, memoryContext, agentRole?)` — in `lib/integrations-openai-ai-server/src/build-system-prompt.ts`; appends the memory context block and optional role-specific output format reminders (structured output blocks for `paid_specialist` and `social_media_specialist`)
+
+### Wiring
+Memory context is injected into every LLM call at three sites:
+- `artifacts/api-server/src/routes/tasks.ts` — manual task dispatch (`setImmediate` block)
+- `artifacts/api-server/src/routes/schedules.ts` — scheduled task dispatch (`setImmediate` block)
+- `artifacts/api-server/src/lib/manager-review.ts` — Casey's manager review (fetches with `agentRole = "manager"`)
+
+All three use `fetchMemoryContext` + `buildSystemPrompt`. Memory fetch failures are caught and logged as warnings; the LLM call proceeds without memory context rather than failing the task.
+
 ### Drizzle Relations
-`lib/db/src/schema/relations.ts` defines full relation graph for all tables (used by Task #34 read paths).
+`lib/db/src/schema/relations.ts` defines full relation graph for all tables.
 
 ## Workflows
 
