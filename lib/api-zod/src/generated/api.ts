@@ -243,6 +243,8 @@ export const UpdatePropertyBody = zod.object({
   facebookHandle: zod.string().optional(),
   twitterHandle: zod.string().optional(),
   linkedinHandle: zod.string().optional(),
+  googleBusinessUrl: zod.string().optional(),
+  linktreeUrl: zod.string().optional(),
   wordpressUrl: zod.string().optional(),
   wordpressUsername: zod.string().optional(),
   wordpressAppPassword: zod.string().optional(),
