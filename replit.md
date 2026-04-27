@@ -142,7 +142,7 @@ Per-property persistent memory so each LLM call accumulates context from prior i
 
 ### Write-Side Functions (lib/db/src/memory-service.ts)
 - `writeMemory(params)` — insert a single memory entry
-- `consolidateMemoryFromReview(reviewId)` — called via `setImmediate` after `/reviews/:id/decide`
+- `consolidateMemoryFromReview(reviewId)` — called with `await` (blocking) inside the `/reviews/:id/decide` handler, before the response is sent; guarantees memory is written before any follow-on task the client dispatches can execute its LLM call
 - `writeContentMemory(params)` — called after CMS publish
 - `writeCampaignMemory(params)` — called after ad platform push
 

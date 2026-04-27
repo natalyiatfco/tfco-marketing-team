@@ -85,15 +85,13 @@ router.post("/reviews/:id/decide", async (req, res): Promise<void> => {
     .set({ status: taskStatus, updatedAt: new Date() })
     .where(eq(tasksTable.id, review.taskId));
 
-  res.json(review);
+  try {
+    await consolidateMemoryFromReview(review.id);
+  } catch (err) {
+    logger.warn({ err, reviewId: review.id }, "Memory consolidation failed — non-fatal");
+  }
 
-  setImmediate(async () => {
-    try {
-      await consolidateMemoryFromReview(review.id);
-    } catch (err) {
-      logger.warn({ err, reviewId: review.id }, "Memory consolidation failed — non-fatal");
-    }
-  });
+  res.json(review);
 });
 
 export default router;
