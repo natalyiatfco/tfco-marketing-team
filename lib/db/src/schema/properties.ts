@@ -29,6 +29,8 @@ export const propertiesTable = pgTable("properties", {
   metaAdPageId: text("meta_ad_page_id"),
   hubspotPortalId: text("hubspot_portal_id"),
   hubspotApiKey: text("hubspot_api_key"),
+  location: text("location"),
+  fullAddress: text("full_address"),
   openedAt: timestamp("opened_at", { withTimezone: true }),
   propertyType: text("property_type"),
   logoUrl: text("logo_url"),

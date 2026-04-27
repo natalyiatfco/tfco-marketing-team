@@ -82,6 +82,8 @@ export const ListPropertiesResponseItem = zod.object({
   hubspotConfigured: zod
     .boolean()
     .describe("True when a HubSpot API key is stored"),
+  location: zod.string().nullish().describe("Short location descriptor, e.g. \"Sparks, Baltimore County, MD\""),
+  fullAddress: zod.string().nullish().describe("Full mailing address, e.g. \"14833 York Rd, Sparks Glencoe, MD 21152\""),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -147,6 +149,8 @@ export const CreatePropertyBody = zod.object({
     .string()
     .optional()
     .describe("HubSpot private API key — write-only, never returned"),
+  location: zod.string().optional().describe("Short location descriptor, e.g. \"Sparks, Baltimore County, MD\""),
+  fullAddress: zod.string().optional().describe("Full mailing address, e.g. \"14833 York Rd, Sparks Glencoe, MD 21152\""),
 });
 
 /**
@@ -220,6 +224,8 @@ export const GetPropertyResponse = zod.object({
   hubspotConfigured: zod
     .boolean()
     .describe("True when a HubSpot API key is stored"),
+  location: zod.string().nullish().describe("Short location descriptor, e.g. \"Sparks, Baltimore County, MD\""),
+  fullAddress: zod.string().nullish().describe("Full mailing address, e.g. \"14833 York Rd, Sparks Glencoe, MD 21152\""),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -284,6 +290,8 @@ export const UpdatePropertyBody = zod.object({
     .describe(
       "HubSpot private API key — write-only, leave blank to keep existing value",
     ),
+  location: zod.string().optional().describe("Short location descriptor, e.g. \"Sparks, Baltimore County, MD\""),
+  fullAddress: zod.string().optional().describe("Full mailing address, e.g. \"14833 York Rd, Sparks Glencoe, MD 21152\""),
 });
 
 export const UpdatePropertyResponse = zod.object({
@@ -350,6 +358,8 @@ export const UpdatePropertyResponse = zod.object({
   hubspotConfigured: zod
     .boolean()
     .describe("True when a HubSpot API key is stored"),
+  location: zod.string().nullish().describe("Short location descriptor, e.g. \"Sparks, Baltimore County, MD\""),
+  fullAddress: zod.string().nullish().describe("Full mailing address, e.g. \"14833 York Rd, Sparks Glencoe, MD 21152\""),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });

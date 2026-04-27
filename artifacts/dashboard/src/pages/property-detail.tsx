@@ -61,6 +61,8 @@ const propertySchema = z.object({
   metaAdPageId: z.string().optional().nullable(),
   hubspotPortalId: z.string().optional().nullable(),
   hubspotApiKey: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
+  fullAddress: z.string().optional().nullable(),
   openedAt: z.string().optional().nullable(),
   propertyType: z.string().optional().nullable(),
   logoUrl: z.string().optional().nullable(),
@@ -100,6 +102,8 @@ export default function PropertyDetail() {
       metaAdPageId: "",
       hubspotPortalId: "",
       hubspotApiKey: "",
+      location: "",
+      fullAddress: "",
       openedAt: "",
       propertyType: "",
       logoUrl: "",
@@ -134,6 +138,8 @@ export default function PropertyDetail() {
       metaAdPageId: p.metaAdPageId || "",
       hubspotPortalId: p.hubspotPortalId || "",
       hubspotApiKey: "",
+      location: p.location || "",
+      fullAddress: p.fullAddress || "",
       openedAt: p.openedAt ? new Date(p.openedAt).toISOString().split("T")[0] : "",
       propertyType: p.propertyType || "",
       logoUrl: p.logoUrl || "",
@@ -333,6 +339,31 @@ export default function PropertyDetail() {
                     <FormItem>
                       <FormLabel>Date Opened</FormLabel>
                       <FormControl><Input type="date" {...field} value={field.value || ""} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl><Input {...field} value={field.value || ""} placeholder="e.g. Sparks, Baltimore County, MD" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="fullAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Address</FormLabel>
+                      <FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 14833 York Rd, Sparks Glencoe, MD 21152" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

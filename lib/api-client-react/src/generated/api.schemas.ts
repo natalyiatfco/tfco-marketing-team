@@ -32,6 +32,10 @@ export interface Property {
   twitterHandle?: string | null;
   /** @nullable */
   linkedinHandle?: string | null;
+  /** @nullable */
+  googleBusinessUrl?: string | null;
+  /** @nullable */
+  linktreeUrl?: string | null;
   /**
    * Google Ads customer/account ID (e.g. 123-456-7890) — read-only safe field
    * @nullable
@@ -80,6 +84,16 @@ export interface Property {
   hubspotPortalId?: string | null;
   /** True when a HubSpot API key is stored */
   hubspotConfigured: boolean;
+  /**
+   * Short location descriptor, e.g. "Sparks, Baltimore County, MD"
+   * @nullable
+   */
+  location?: string | null;
+  /**
+   * Full mailing address, e.g. "14833 York Rd, Sparks Glencoe, MD 21152"
+   * @nullable
+   */
+  fullAddress?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -123,6 +137,10 @@ export interface CreatePropertyBody {
   hubspotPortalId?: string;
   /** HubSpot private API key — write-only, never returned */
   hubspotApiKey?: string;
+  /** Short location descriptor, e.g. "Sparks, Baltimore County, MD" */
+  location?: string;
+  /** Full mailing address, e.g. "14833 York Rd, Sparks Glencoe, MD 21152" */
+  fullAddress?: string;
 }
 
 export interface UpdatePropertyBody {
@@ -162,6 +180,10 @@ export interface UpdatePropertyBody {
   hubspotPortalId?: string;
   /** HubSpot private API key — write-only, leave blank to keep existing value */
   hubspotApiKey?: string;
+  /** Short location descriptor, e.g. "Sparks, Baltimore County, MD" */
+  location?: string;
+  /** Full mailing address, e.g. "14833 York Rd, Sparks Glencoe, MD 21152" */
+  fullAddress?: string;
 }
 
 export interface Agent {
