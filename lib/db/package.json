@@ -8,8 +8,9 @@
     "./schema": "./src/schema/index.ts"
   },
   "scripts": {
-    "push": "drizzle-kit push --config ./drizzle.config.ts",
-    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts"
+    "setup-extensions": "node --experimental-strip-types src/setup-extensions.ts",
+    "push": "node --experimental-strip-types src/setup-extensions.ts && drizzle-kit push --config ./drizzle.config.ts",
+    "push-force": "node --experimental-strip-types src/setup-extensions.ts && drizzle-kit push --force --config ./drizzle.config.ts"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
