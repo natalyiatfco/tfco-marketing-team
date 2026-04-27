@@ -86,6 +86,19 @@ Beyond brand/social fields, properties carry:
 - `propertyType` (text) — e.g. "Restaurant", "Wine Shop"
 - `logoUrl` (text) — base64 data URL or hosted URL
 
+### Prompt Injection — Identity Section
+
+`buildBrandContext` (`artifacts/api-server/src/lib/brand-context.ts`) prepends a static identity block to every LLM call. This is not memory — it is injected on every call from the property record:
+
+```
+== Property Identity ==
+You are working on: {name} — {propertyType}
+Located at: {fullAddress}          ← falls back to `location` if fullAddress is null
+Opened: {openedAt formatted}
+```
+
+Followed by brand guidelines (description, brandVoice, tone, targetAudience, primaryKeywords, websiteUrl). The identity section ensures agents have concrete, property-specific context — Jordan generates location-aware ad copy, Sam writes meta descriptions with the actual address, Alex's content reflects how long a venue has been open.
+
 ## Ad Platform Integration (Task #3)
 
 ### Properties — New Ad Fields
