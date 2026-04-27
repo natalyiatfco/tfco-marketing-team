@@ -47,8 +47,8 @@ const propertySchema = z.object({
   websiteUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
   instagramHandle: z.string().optional().nullable(),
   facebookHandle: z.string().optional().nullable(),
-  twitterHandle: z.string().optional().nullable(),
-  linkedinHandle: z.string().optional().nullable(),
+  googleBusinessUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
+  linktreeUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
   wordpressUrl: z.string().url("Must be a valid URL").optional().nullable().or(z.literal("")),
   wordpressUsername: z.string().optional().nullable(),
   wordpressAppPassword: z.string().optional().nullable(),
@@ -120,8 +120,8 @@ export default function PropertyDetail() {
       websiteUrl: p.websiteUrl || "",
       instagramHandle: p.instagramHandle || "",
       facebookHandle: p.facebookHandle || "",
-      twitterHandle: p.twitterHandle || "",
-      linkedinHandle: p.linkedinHandle || "",
+      googleBusinessUrl: p.googleBusinessUrl || "",
+      linktreeUrl: p.linktreeUrl || "",
       wordpressUrl: "",
       wordpressUsername: "",
       wordpressAppPassword: "",
@@ -385,16 +385,16 @@ export default function PropertyDetail() {
                 <FormItem className="md:col-span-2"><FormLabel>Website URL</FormLabel><FormControl><Input type="url" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="instagramHandle" render={({ field }) => (
-                <FormItem><FormLabel>Instagram Handle</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Instagram Handle</FormLabel><FormControl><Input placeholder="@handle" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="facebookHandle" render={({ field }) => (
-                <FormItem><FormLabel>Facebook Handle</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Facebook Handle</FormLabel><FormControl><Input placeholder="@page" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
               )} />
-              <FormField control={form.control} name="twitterHandle" render={({ field }) => (
-                <FormItem><FormLabel>Twitter Handle</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
+              <FormField control={form.control} name="googleBusinessUrl" render={({ field }) => (
+                <FormItem><FormLabel>Google Business Profile URL</FormLabel><FormControl><Input type="url" placeholder="https://g.page/..." {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
               )} />
-              <FormField control={form.control} name="linkedinHandle" render={({ field }) => (
-                <FormItem><FormLabel>LinkedIn Handle</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
+              <FormField control={form.control} name="linktreeUrl" render={({ field }) => (
+                <FormItem><FormLabel>Linktree URL</FormLabel><FormControl><Input type="url" placeholder="https://linktr.ee/..." {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
               )} />
             </CardContent>
           </Card>

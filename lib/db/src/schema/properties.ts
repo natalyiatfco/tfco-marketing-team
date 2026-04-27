@@ -15,6 +15,8 @@ export const propertiesTable = pgTable("properties", {
   facebookHandle: text("facebook_handle"),
   twitterHandle: text("twitter_handle"),
   linkedinHandle: text("linkedin_handle"),
+  googleBusinessUrl: text("google_business_url"),
+  linktreeUrl: text("linktree_url"),
   wordpressUrl: text("wordpress_url"),
   wordpressUsername: text("wordpress_username"),
   wordpressAppPassword: text("wordpress_app_password"),

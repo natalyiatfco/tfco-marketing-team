@@ -31,6 +31,8 @@ export const ListPropertiesResponseItem = zod.object({
   facebookHandle: zod.string().nullish(),
   twitterHandle: zod.string().nullish(),
   linkedinHandle: zod.string().nullish(),
+  googleBusinessUrl: zod.string().nullish(),
+  linktreeUrl: zod.string().nullish(),
   googleAdsCustomerId: zod
     .string()
     .nullish()
@@ -100,6 +102,8 @@ export const CreatePropertyBody = zod.object({
   facebookHandle: zod.string().optional(),
   twitterHandle: zod.string().optional(),
   linkedinHandle: zod.string().optional(),
+  googleBusinessUrl: zod.string().optional(),
+  linktreeUrl: zod.string().optional(),
   wordpressUrl: zod.string().optional(),
   wordpressUsername: zod.string().optional(),
   wordpressAppPassword: zod.string().optional(),
@@ -165,6 +169,8 @@ export const GetPropertyResponse = zod.object({
   facebookHandle: zod.string().nullish(),
   twitterHandle: zod.string().nullish(),
   linkedinHandle: zod.string().nullish(),
+  googleBusinessUrl: zod.string().nullish(),
+  linktreeUrl: zod.string().nullish(),
   googleAdsCustomerId: zod
     .string()
     .nullish()
@@ -291,6 +297,8 @@ export const UpdatePropertyResponse = zod.object({
   facebookHandle: zod.string().nullish(),
   twitterHandle: zod.string().nullish(),
   linkedinHandle: zod.string().nullish(),
+  googleBusinessUrl: zod.string().nullish(),
+  linktreeUrl: zod.string().nullish(),
   googleAdsCustomerId: zod
     .string()
     .nullish()
